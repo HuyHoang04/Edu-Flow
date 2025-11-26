@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Main Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: teacher_automation_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: teacher_automation
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - teacher_automation_network
+
+  # PostgreSQL - AI Content Database
+  postgres_ai:
+    image: postgres:14-alpine
+    container_name: teacher_automation_postgres_ai
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_content
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_ai_data:/var/lib/postgresql/data
+    networks:
+      - teacher_automation_network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: teacher_automation_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - teacher_automation_network
+
+volumes:
+  postgres_data:
+  postgres_ai_data:
+  redis_data:
+
+networks:
+  teacher_automation_network:
+    driver: bridge

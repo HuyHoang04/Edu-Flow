@@ -1,0 +1,43 @@
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://neondb_owner:npg_TQvcDXn5FVH6@ep-shiny-bar-ahwtqtwu-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+DATABASE_HOST=ep-shiny-bar-ahwtqtwu-pooler.c-3.us-east-1.aws.neon.tech
+DATABASE_PORT=5432
+DATABASE_USER=neondb_owner
+DATABASE_PASSWORD=npg_TQvcDXn5FVH6
+DATABASE_NAME=neondb
+
+# Redis (local for development)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# Google OAuth
+GOOGLE_CLIENT_ID=260601715709-0vitlc2155hec6h4bf55lco8hjqebhq6.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+GOOGLE_CALLBACK_URL=http://localhost:4000/api/auth/google/callback
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production_12345
+JWT_EXPIRES_IN=7d
+
+# Gmail API (App Password)
+GMAIL_USER=lahuyhoang04@gmail.com
+GMAIL_APP_PASSWORD=ndyp lfmb xhyf ovvx
+GMAIL_CLIENT_ID=260601715709-0vitlc2155hec6h4bf55lco8hjqebhq6.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=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
+GMAIL_REFRESH_TOKEN=your_gmail_refresh_token
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=dqpo61kif
+CLOUDINARY_API_KEY=164131646222272
+CLOUDINARY_API_SECRET=kb56oWjJWJ2VB9GiiHMQLhuVyGA
+
+# AI Content Service
+AI_CONTENT_SERVICE_URL=http://localhost:8000
+
+# Frontend
+FRONTEND_URL=http://localhost:3000
+
+# Server
+PORT=4000
+NODE_ENV=development
