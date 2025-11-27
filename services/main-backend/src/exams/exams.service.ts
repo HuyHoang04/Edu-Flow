@@ -5,6 +5,8 @@ import { Exam } from './exam.entity';
 import { ExamAttempt } from './exam-attempt.entity';
 import { ExamResult } from './exam-result.entity';
 import { QuestionsService } from '../questions/questions.service';
+import { AuthService } from '../auth/auth.service';
+import { StudentsService } from '../students/students.service';
 import { GradingService } from './grading.service';
 
 @Injectable()
@@ -18,6 +20,8 @@ export class ExamsService {
         private resultsRepository: Repository<ExamResult>,
         private questionsService: QuestionsService,
         private gradingService: GradingService,
+        private authService: AuthService,
+        private studentsService: StudentsService,
     ) { }
 
     // Exam CRUD
@@ -52,6 +56,19 @@ export class ExamsService {
 
     // Exam Attempts
     async startExam(examId: string, studentId: string): Promise<ExamAttempt> {
+        // Check for existing unfinished attempt
+        const existingAttempt = await this.attemptsRepository.findOne({
+            where: {
+                examId,
+                studentId,
+                isGraded: false,
+            },
+        });
+
+        if (existingAttempt) {
+            return existingAttempt;
+        }
+
         const attempt = this.attemptsRepository.create({
             examId,
             studentId,
@@ -180,5 +197,62 @@ export class ExamsService {
             throw new Error('Exam result not found');
         }
         return result;
+    }
+
+    async getExamForTaking(examId: string, userId: string): Promise<any> {
+        const exam = await this.findById(examId);
+        if (!exam) {
+            throw new Error('Exam not found');
+        }
+
+        // TODO: Check if user is enrolled in the class
+        // TODO: Check if exam is active (time window)
+
+        // Get questions with content
+        const questionIds = exam.questions.map((q) => q.questionId);
+        const questions = await this.questionsService.findByIds(questionIds);
+
+        // Sanitize questions (remove correct answers)
+        const sanitizedQuestions = questions.map((q) => {
+            const { correctAnswer, explanation, ...rest } = q;
+            return rest;
+        });
+
+        // Sort questions based on exam order
+        const orderedQuestions = exam.questions
+            .map((eq) => {
+                const question = sanitizedQuestions.find((q) => q.id === eq.questionId);
+                if (question) {
+                    return {
+                        ...question,
+                        points: eq.points || question.points, // Override points if specified in exam
+                    };
+                }
+                return null;
+            })
+            .filter(Boolean);
+
+        return {
+            ...exam,
+            questions: orderedQuestions,
+        };
+    }
+
+    async enterExam(examId: string, studentCode: string) {
+        const exam = await this.findById(examId);
+        if (!exam) {
+            throw new Error('Exam not found');
+        }
+
+        const student = await this.studentsService.findByCode(studentCode);
+        if (!student) {
+            throw new Error('Student not found');
+        }
+
+        if (exam.classId && student.classId !== exam.classId) {
+            throw new Error('Student is not enrolled in the class for this exam');
+        }
+
+        return this.authService.loginStudent(student);
     }
 }

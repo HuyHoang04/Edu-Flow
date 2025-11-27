@@ -12,6 +12,11 @@ apiClient.interceptors.request.use(async (config) => {
     const session = await getSession();
     if (session && (session as any).accessToken) {
         config.headers.Authorization = `Bearer ${(session as any).accessToken}`;
+    } else if (typeof window !== "undefined") {
+        const studentToken = sessionStorage.getItem("student_token");
+        if (studentToken) {
+            config.headers.Authorization = `Bearer ${studentToken}`;
+        }
     }
     return config;
 });
@@ -21,7 +26,7 @@ apiClient.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Redirect to login if unauthorized
-            if (typeof window !== "undefined") {
+            if (typeof window !== "undefined" && !window.location.pathname.startsWith("/exam-taking") && !window.location.pathname.startsWith("/exam-entry")) {
                 window.location.href = "/login";
             }
         }

@@ -86,4 +86,14 @@ export const ExamService = {
         const response = await api.get<ExamResult>(`/exams/attempts/${attemptId}/result`);
         return response.data;
     },
+
+    getExamForTaking: async (id: string) => {
+        const response = await api.get<Exam>(`/exams/${id}/take`);
+        return response.data;
+    },
+
+    enterExam: async (examId: string, studentCode: string) => {
+        const response = await api.post<{ access_token: string; student: any; examId: string }>(`/exams/${examId}/enter`, { studentCode });
+        return response.data;
+    },
 };

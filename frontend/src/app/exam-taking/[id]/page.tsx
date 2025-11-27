@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ExamService, ExamAttempt, Exam } from "@/services/exam.service";
-import { Question } from "@/services/question.service";
 import { ExamTimer } from "@/components/exam/exam-timer";
 import { QuestionRenderer } from "@/components/exam/question-renderer";
 import { QuestionNavigator } from "@/components/exam/question-navigator";
@@ -22,7 +21,7 @@ import { ChevronLeft, ChevronRight, Send, Save } from "lucide-react";
 export default function ExamTakingPage() {
     const params = useParams();
     const router = useRouter();
-    const attemptId = params.id as string;
+    const examId = params.id as string;
 
     const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
     const [exam, setExam] = useState<Exam | null>(null);
@@ -32,61 +31,65 @@ export default function ExamTakingPage() {
     const [submitting, setSubmitting] = useState(false);
     const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
-    // Load attempt and exam data
+    // Load exam and attempt data
     useEffect(() => {
-        const loadExamData = async () => {
+        const loadData = async () => {
             try {
                 setLoading(true);
-                const attemptData = await ExamService.getAttempt(attemptId);
+                // Start or resume exam
+                const attemptData = await ExamService.startExam(examId);
                 setAttempt(attemptData);
 
-                const examData = await ExamService.getExamForTaking(attemptData.examId);
+                // Get exam details (securely)
+                const examData = await ExamService.getExamForTaking(examId);
                 setExam(examData);
 
-                // Load saved answers from localStorage
-                const savedAnswers = localStorage.getItem(`exam-${attemptId}`);
+                // Load saved answers from localStorage (backup) or attempt data
+                const savedAnswers = localStorage.getItem(`exam-${attemptData.id}`);
                 if (savedAnswers) {
                     setAnswers(new Map(JSON.parse(savedAnswers)));
                 } else if (attemptData.answers && attemptData.answers.length > 0) {
                     const answerMap = new Map(
-                        attemptData.answers.map(a => [a.questionId, a.answer])
+                        attemptData.answers.map((a: any) => [a.questionId, a.answer])
                     );
                     setAnswers(answerMap);
                 }
             } catch (error) {
                 console.error("Failed to load exam:", error);
-                alert("Không thể tải bài thi. Vui lòng thử lại.");
-                router.push("/dashboard/student-exams");
+                alert("Không thể tải bài thi. Vui lòng đăng nhập lại.");
+                router.push(`/exam-entry/${examId}`);
             } finally {
                 setLoading(false);
             }
         };
 
-        loadExamData();
-    }, [attemptId, router]);
+        loadData();
+    }, [examId, router]);
 
     // Auto-save answers to localStorage every 10 seconds
     useEffect(() => {
-        if (answers.size === 0) return;
+        if (answers.size === 0 || !attempt) return;
 
         const interval = setInterval(() => {
-            localStorage.setItem(`exam-${attemptId}`, JSON.stringify(Array.from(answers.entries())));
+            localStorage.setItem(`exam-${attempt.id}`, JSON.stringify(Array.from(answers.entries())));
         }, 10000); // Save every 10 seconds
 
         return () => clearInterval(interval);
-    }, [answers, attemptId]);
+    }, [answers, attempt]);
 
     const handleAnswerChange = useCallback((questionId: string, answer: string) => {
+        if (!attempt) return;
         setAnswers(prev => {
             const newAnswers = new Map(prev);
             newAnswers.set(questionId, answer);
             // Immediate save to localStorage
-            localStorage.setItem(`exam-${attemptId}`, JSON.stringify(Array.from(newAnswers.entries())));
+            localStorage.setItem(`exam-${attempt.id}`, JSON.stringify(Array.from(newAnswers.entries())));
             return newAnswers;
         });
-    }, [attemptId]);
+    }, [attempt]);
 
     const handleSubmit = async () => {
+        if (!attempt) return;
         try {
             setSubmitting(true);
             const answerArray = Array.from(answers.entries()).map(([questionId, answer]) => ({
@@ -94,13 +97,16 @@ export default function ExamTakingPage() {
                 answer,
             }));
 
-            await ExamService.submitExam(attemptId, answerArray);
+            await ExamService.submitExam(attempt.id, answerArray);
 
             // Clear localStorage
-            localStorage.removeItem(`exam-${attemptId}`);
+            localStorage.removeItem(`exam-${attempt.id}`);
+            sessionStorage.removeItem("student_token"); // Clear token on submit? Maybe keep it for result page.
 
-            // Redirect to results
-            router.push(`/dashboard/student-exams/${attemptId}/result`);
+            // Redirect to results (we might need a public result page too)
+            // For now, just show alert or redirect to entry page with success message
+            alert("Nộp bài thành công!");
+            router.push(`/exam-entry/${examId}`);
         } catch (error) {
             console.error("Failed to submit exam:", error);
             alert("Không thể nộp bài. Vui lòng thử lại.");
@@ -224,8 +230,10 @@ export default function ExamTakingPage() {
                                     variant="outline"
                                     className="w-full gap-2"
                                     onClick={() => {
-                                        localStorage.setItem(`exam-${attemptId}`, JSON.stringify(Array.from(answers.entries())));
-                                        alert("Đã lưu nháp!");
+                                        if (attempt) {
+                                            localStorage.setItem(`exam-${attempt.id}`, JSON.stringify(Array.from(answers.entries())));
+                                            alert("Đã lưu nháp!");
+                                        }
                                     }}
                                 >
                                     <Save className="h-4 w-4" />
@@ -270,6 +278,6 @@ export default function ExamTakingPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div >
+        </div>
     );
 }

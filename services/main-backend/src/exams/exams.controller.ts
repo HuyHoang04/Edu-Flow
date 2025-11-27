@@ -13,6 +13,7 @@ import {
 import { ExamsService } from './exams.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Exam } from './exam.entity';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('exams')
 @UseGuards(JwtAuthGuard)
@@ -53,6 +54,23 @@ export class ExamsController {
         @Req() req: any,
     ) {
         return this.examsService.startExam(examId, req.user.id);
+    }
+
+    @Get(':id/take')
+    async getExamForTaking(
+        @Param('id') examId: string,
+        @Req() req: any,
+    ) {
+        return this.examsService.getExamForTaking(examId, req.user.id);
+    }
+
+    @Public()
+    @Post(':id/enter')
+    async enterExam(
+        @Param('id') examId: string,
+        @Body('studentCode') studentCode: string,
+    ) {
+        return this.examsService.enterExam(examId, studentCode);
     }
 
     @Get('attempts/:attemptId')

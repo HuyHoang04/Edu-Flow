@@ -53,4 +53,17 @@ export class AuthService {
             },
         };
     }
+
+    async loginStudent(student: any) {
+        const payload = { sub: student.id, role: 'student', code: student.code };
+        return {
+            access_token: this.jwtService.sign(payload),
+            student: {
+                id: student.id,
+                name: student.name,
+                code: student.code,
+                role: 'student',
+            },
+        };
+    }
 }

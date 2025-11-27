@@ -6,14 +6,17 @@ import { ExamResult } from './exam-result.entity';
 import { ExamsService } from './exams.service';
 import { ExamsController } from './exams.controller';
 import { GradingService } from './grading.service';
+
 import { QuestionsModule } from '../questions/questions.module';
 import { AuthModule } from '../auth/auth.module';
+import { StudentsModule } from '../students/students.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Exam, ExamAttempt, ExamResult]),
-        AuthModule,
         QuestionsModule,
+        AuthModule,
+        StudentsModule,
     ],
     controllers: [ExamsController],
     providers: [ExamsService, GradingService],

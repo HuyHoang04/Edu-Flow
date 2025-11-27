@@ -27,6 +27,10 @@ export class StudentsService {
         return this.studentsRepository.findOne({ where: { id } });
     }
 
+    async findByCode(code: string): Promise<Student | null> {
+        return this.studentsRepository.findOne({ where: { code } });
+    }
+
     async create(studentData: Partial<Student>): Promise<Student> {
         const student = this.studentsRepository.create(studentData);
         return this.studentsRepository.save(student);
