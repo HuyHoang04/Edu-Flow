@@ -1,0 +1,12 @@
+{
+    "extends": "./services/main-backend/tsconfig.json",
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es2019",
+        "noImplicitAny": false,
+        "sourceMap": true
+    },
+    "include": [
+        "test-new-nodes.ts"
+    ]
+}

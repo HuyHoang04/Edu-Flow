@@ -38,6 +38,12 @@ export class Workflow {
     @Column({ default: true })
     isActive: boolean;
 
+    @Column({ default: false })
+    isTemplate: boolean;
+
+    @Column({ nullable: true })
+    category: string; // For templates: 'education', 'automation', 'notification', etc.
+
     @Column({ type: 'jsonb', nullable: true })
     trigger: {
         type: 'manual' | 'schedule' | 'event';

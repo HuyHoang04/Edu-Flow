@@ -3,7 +3,9 @@ import {
     PrimaryGeneratedColumn,
     Column,
     CreateDateColumn,
+    ManyToOne,
 } from 'typeorm';
+import { Class } from '../classes/class.entity';
 
 @Entity('schedules')
 export class Schedule {
@@ -12,6 +14,9 @@ export class Schedule {
 
     @Column()
     classId: string;
+
+    @ManyToOne(() => Class, (cls) => cls.schedules)
+    class: Class;
 
     @Column()
     dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.

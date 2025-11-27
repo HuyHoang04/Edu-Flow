@@ -53,6 +53,9 @@ export class Question {
     @Column()
     subject: string;
 
+    @Column({ nullable: true })
+    topic: string;
+
     @Column({ type: 'jsonb', default: [] })
     tags: string[];
 

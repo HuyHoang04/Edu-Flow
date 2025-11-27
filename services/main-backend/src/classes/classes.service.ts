@@ -7,18 +7,22 @@ import { Class } from './class.entity';
 export class ClassesService {
     constructor(
         @InjectRepository(Class)
-        private classesRepository: Repository<Class>,
+        public classesRepository: Repository<Class>,
     ) { }
 
     async findAll(teacherId?: string): Promise<Class[]> {
+        const query = this.classesRepository.createQueryBuilder('class')
+            .loadRelationCountAndMap('class.studentCount', 'class.students');
+
         if (teacherId) {
-            return this.classesRepository.find({ where: { teacherId } });
+            query.where('class.teacherId = :teacherId', { teacherId });
         }
-        return this.classesRepository.find();
+
+        return query.getMany();
     }
 
     async findById(id: string): Promise<Class | null> {
-        return this.classesRepository.findOne({ where: { id } });
+        return this.classesRepository.findOne({ where: { id }, relations: ['students'] });
     }
 
     async create(classData: Partial<Class>): Promise<Class> {

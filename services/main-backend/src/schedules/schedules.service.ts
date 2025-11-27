@@ -15,9 +15,13 @@ export class SchedulesService {
             return this.schedulesRepository.find({
                 where: { classId },
                 order: { dayOfWeek: 'ASC', startTime: 'ASC' },
+                relations: ['class'],
             });
         }
-        return this.schedulesRepository.find({ order: { dayOfWeek: 'ASC' } });
+        return this.schedulesRepository.find({
+            order: { dayOfWeek: 'ASC' },
+            relations: ['class'],
+        });
     }
 
     async findByClass(classId: string): Promise<Schedule[]> {

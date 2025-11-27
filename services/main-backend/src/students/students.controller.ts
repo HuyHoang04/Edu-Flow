@@ -8,7 +8,10 @@ import {
     Param,
     Query,
     UseGuards,
+    UseInterceptors,
+    UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { StudentsService } from './students.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Student } from './student.entity';
@@ -47,5 +50,14 @@ export class StudentsController {
     async delete(@Param('id') id: string) {
         await this.studentsService.delete(id);
         return { message: 'Student deleted successfully' };
+    }
+
+    @Post('import')
+    @UseInterceptors(FileInterceptor('file'))
+    async import(@UploadedFile() file: any) {
+        if (!file) {
+            throw new Error('No file uploaded');
+        }
+        return this.studentsService.importFromExcel(file);
     }
 }

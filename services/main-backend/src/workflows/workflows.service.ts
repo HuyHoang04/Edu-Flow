@@ -3,9 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Workflow } from './workflow.entity';
 import { WorkflowExecution, ExecutionStatus } from './workflow-execution.entity';
-import { EmailsService } from '../emails/emails.service';
-import { StudentsService } from '../students/students.service';
-import { FormsService } from '../forms/forms.service';
+import { NodeRegistryService } from './node-registry.service';
 
 export interface CreateWorkflowDto {
     name: string;
@@ -35,9 +33,7 @@ export class WorkflowsService {
         private workflowsRepository: Repository<Workflow>,
         @InjectRepository(WorkflowExecution)
         private executionsRepository: Repository<WorkflowExecution>,
-        private emailsService: EmailsService,
-        private studentsService: StudentsService,
-        private formsService: FormsService,
+        private nodeRegistry: NodeRegistryService,
     ) { }
 
     // Workflow CRUD
@@ -71,6 +67,65 @@ export class WorkflowsService {
 
     async delete(id: string): Promise<void> {
         await this.workflowsRepository.delete(id);
+    }
+
+    // Template Management
+    async findAllTemplates(): Promise<Workflow[]> {
+        return this.workflowsRepository.find({
+            where: { isTemplate: true },
+            order: { createdAt: 'DESC' }
+        });
+    }
+
+    async saveAsTemplate(
+        workflowId: string,
+        templateData: { name?: string; description?: string; category?: string; createdBy?: string }
+    ): Promise<Workflow> {
+        const workflow = await this.findById(workflowId);
+        if (!workflow) {
+            throw new Error('Workflow not found');
+        }
+
+        const template = this.workflowsRepository.create({
+            name: templateData.name || `${workflow.name} (Template)`,
+            description: templateData.description || workflow.description,
+            category: templateData.category,
+            nodes: workflow.nodes,
+            edges: workflow.edges,
+            trigger: workflow.trigger,
+            isTemplate: true,
+            isActive: true,
+            createdBy: templateData.createdBy || workflow.createdBy
+        });
+
+        return this.workflowsRepository.save(template);
+    }
+
+    async useTemplate(
+        templateId: string,
+        workflowData: { name?: string; createdBy?: string }
+    ): Promise<Workflow> {
+        const template = await this.findById(templateId);
+        if (!template) {
+            throw new Error('Template not found');
+        }
+
+        if (!template.isTemplate) {
+            throw new Error('This is not a template');
+        }
+
+        const workflow = this.workflowsRepository.create({
+            name: workflowData.name || `Copy of ${template.name}`,
+            description: template.description,
+            nodes: template.nodes,
+            edges: template.edges,
+            trigger: template.trigger,
+            isTemplate: false,
+            isActive: true,
+            createdBy: workflowData.createdBy || template.createdBy
+        });
+
+        return this.workflowsRepository.save(workflow);
     }
 
     // Workflow Execution
@@ -122,20 +177,29 @@ export class WorkflowsService {
         if (!execution) return;
 
         try {
+            console.log('Workflow Nodes:', JSON.stringify(workflow.nodes, null, 2));
+
             // Find start node
-            const startNode = workflow.nodes.find((n) => n.type === 'start');
+            let startNode;
+            if (execution.triggeredBy === 'manual') {
+                startNode = workflow.nodes.find(n => n.data.nodeType === 'manual-trigger');
+            } else {
+                // Default to first node or specific trigger logic
+                startNode = workflow.nodes.find(n => n.type === 'trigger' || n.data.category === 'Trigger');
+            }
+
             if (!startNode) {
                 throw new Error('No start node found');
             }
 
-            // Execute nodes in order
+            console.log(`[Workflow] Starting execution from node: ${startNode.id}`);
             await this.executeNode(execution, workflow, startNode, context);
 
-            // Mark as completed
             execution.status = ExecutionStatus.COMPLETED;
             execution.completedAt = new Date();
             await this.executionsRepository.save(execution);
         } catch (error: any) {
+            console.error('[Workflow] Execution failed:', error);
             execution.status = ExecutionStatus.FAILED;
             execution.errorMessage = error.message;
             execution.completedAt = new Date();
@@ -156,45 +220,26 @@ export class WorkflowsService {
         };
 
         try {
-            // Execute based on node type
+            const nodeType = node.data.nodeType;
+            const executor = this.nodeRegistry.getExecutor(nodeType);
+
             let result: any;
+            let nextNodes: string[] = [];
 
-            switch (node.type) {
-                case 'start':
-                    result = { message: 'Workflow started' };
-                    break;
+            if (executor) {
+                const executionResult = await executor.execute(node, context, execution, workflow);
+                if (!executionResult.success) {
+                    throw new Error(executionResult.error || 'Node execution failed');
+                }
+                result = executionResult.output;
 
-                case 'sendEmail':
-                    result = await this.emailsService.sendEmail({
-                        recipients: node.data.recipients || [],
-                        subject: node.data.subject || 'No subject',
-                        body: node.data.body || '',
-                        sentBy: execution.triggeredBy || 'system',
-                    });
-                    break;
-
-                case 'getStudents':
-                    result = await this.studentsService.findAll(node.data.classId);
-                    context.students = result;
-                    break;
-
-                case 'createForm':
-                    result = await this.formsService.create({
-                        title: node.data.title,
-                        description: node.data.description,
-                        fields: node.data.fields || [],
-                        createdBy: execution.triggeredBy || 'system',
-                    });
-                    context.formId = result.id;
-                    break;
-
-                case 'condition':
-                    // Evaluate condition and choose next path
-                    result = this.evaluateCondition(node.data.condition, context);
-                    break;
-
-                default:
-                    result = { message: `Node type ${node.type} executed` };
+                // If executor returns specific next nodes (e.g. ConditionNode), use them
+                if (executionResult.nextNodes) {
+                    nextNodes = executionResult.nextNodes;
+                }
+            } else {
+                console.warn(`No executor found for type: ${nodeType}`);
+                result = { message: `Node type ${nodeType} skipped (no executor)` };
             }
 
             nodeExecution.status = 'completed';
@@ -203,10 +248,15 @@ export class WorkflowsService {
             execution.executedNodes.push(nodeExecution as any);
             await this.executionsRepository.save(execution);
 
-            // Find and execute next nodes
-            const nextEdges = workflow.edges.filter((e) => e.source === node.id);
-            for (const edge of nextEdges) {
-                const nextNode = workflow.nodes.find((n) => n.id === edge.target);
+            // Determine next nodes if not already decided by executor
+            if (nextNodes.length === 0) {
+                const nextEdges = workflow.edges.filter((e) => e.source === node.id);
+                nextNodes = nextEdges.map(e => e.target);
+            }
+
+            // Execute next nodes
+            for (const nextNodeId of nextNodes) {
+                const nextNode = workflow.nodes.find((n) => n.id === nextNodeId);
                 if (nextNode) {
                     await this.executeNode(execution, workflow, nextNode, context);
                 }
@@ -220,17 +270,6 @@ export class WorkflowsService {
         }
     }
 
-    private evaluateCondition(condition: string, context: Record<string, any>): boolean {
-        // Simple condition evaluation (in production, use a safe eval library)
-        try {
-            // Very basic evaluation - extend as needed
-            return Boolean(context[condition]);
-        } catch {
-            return false;
-        }
-    }
-
-    // Execution queries
     async getExecutions(workflowId?: string): Promise<WorkflowExecution[]> {
         if (workflowId) {
             return this.executionsRepository.find({

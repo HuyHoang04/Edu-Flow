@@ -7,6 +7,7 @@ import {
     ManyToOne,
     JoinColumn,
 } from 'typeorm';
+import { Class } from '../classes/class.entity';
 
 @Entity('students')
 export class Student {
@@ -15,6 +16,9 @@ export class Student {
 
     @Column()
     name: string;
+
+    @Column({ unique: true, nullable: true })
+    code: string;
 
     @Column({ unique: true })
     email: string;
@@ -27,6 +31,10 @@ export class Student {
 
     @Column({ nullable: true })
     classId: string;
+
+    @ManyToOne(() => Class)
+    @JoinColumn({ name: 'classId' })
+    class: Class;
 
     @CreateDateColumn()
     createdAt: Date;

@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -10,13 +10,13 @@ export class AuthController {
 
     @Get('google')
     @UseGuards(GoogleOAuthGuard)
-    async googleAuth(@Req() req: Request) {
+    async googleAuth(@Req() req: any) {
         // Initiates Google OAuth flow
     }
 
     @Get('google/callback')
     @UseGuards(GoogleOAuthGuard)
-    async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
+    async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
         // Validate and create/update user
         const user = await this.authService.validateGoogleUser(req.user);
 
@@ -28,9 +28,15 @@ export class AuthController {
         res.redirect(`${frontendUrl}/auth/callback?token=${access_token}`);
     }
 
+    @Post('login')
+    async login(@Body() loginData: { googleId: string; email: string; name: string; avatarUrl: string; accessToken?: string }) {
+        const user = await this.authService.validateGoogleUser(loginData);
+        return this.authService.login(user);
+    }
+
     @Get('profile')
     @UseGuards(JwtAuthGuard)
-    getProfile(@Req() req: Request) {
+    getProfile(@Req() req: any) {
         return req.user;
     }
 

@@ -9,6 +9,8 @@ env/
 venv/
 .venv/
 
+.next/
+
 # Environment files
 .env
 .env.local

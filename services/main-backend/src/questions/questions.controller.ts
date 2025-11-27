@@ -8,6 +8,7 @@ import {
     Param,
     Query,
     UseGuards,
+    Req,
 } from '@nestjs/common';
 import { QuestionsService } from './questions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -21,12 +22,14 @@ export class QuestionsController {
     @Get()
     async findAll(
         @Query('subject') subject?: string,
+        @Query('topic') topic?: string,
         @Query('difficulty') difficulty?: QuestionDifficulty,
         @Query('type') type?: QuestionType,
         @Query('createdBy') createdBy?: string,
     ) {
         return this.questionsService.findAll({
             subject,
+            topic,
             difficulty,
             type,
             createdBy,
@@ -45,8 +48,11 @@ export class QuestionsController {
     }
 
     @Post()
-    async create(@Body() questionData: Partial<Question>) {
-        return this.questionsService.create(questionData);
+    async create(@Body() questionData: Partial<Question>, @Req() req: any) {
+        return this.questionsService.create({
+            ...questionData,
+            createdBy: req.user.id,
+        });
     }
 
     @Post('bulk')

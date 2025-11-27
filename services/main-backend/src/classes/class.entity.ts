@@ -6,6 +6,8 @@ import {
     UpdateDateColumn,
     OneToMany,
 } from 'typeorm';
+import { Student } from '../students/student.entity';
+import { Schedule } from '../schedules/schedule.entity';
 
 @Entity('classes')
 export class Class {
@@ -29,6 +31,12 @@ export class Class {
 
     @Column({ nullable: true })
     room: string;
+
+    @OneToMany(() => Student, (student) => student.class)
+    students: Student[];
+
+    @OneToMany(() => Schedule, (schedule) => schedule.class)
+    schedules: Schedule[];
 
     @CreateDateColumn()
     createdAt: Date;

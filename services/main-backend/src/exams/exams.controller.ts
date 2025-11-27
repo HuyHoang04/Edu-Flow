@@ -8,6 +8,7 @@ import {
     Param,
     Query,
     UseGuards,
+    Req,
 } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -39,16 +40,24 @@ export class ExamsController {
     }
 
     @Post()
-    async create(@Body() examData: Partial<Exam>) {
-        return this.examsService.create(examData);
+    async create(@Body() examData: Partial<Exam>, @Req() req: any) {
+        return this.examsService.create({
+            ...examData,
+            createdBy: req.user.id,
+        });
     }
 
     @Post(':id/start')
     async startExam(
         @Param('id') examId: string,
-        @Body('studentId') studentId: string,
+        @Req() req: any,
     ) {
-        return this.examsService.startExam(examId, studentId);
+        return this.examsService.startExam(examId, req.user.id);
+    }
+
+    @Get('attempts/:attemptId')
+    async getAttempt(@Param('attemptId') attemptId: string) {
+        return this.examsService.getAttemptById(attemptId);
     }
 
     @Post('attempts/:attemptId/submit')
@@ -57,6 +66,24 @@ export class ExamsController {
         @Body('answers') answers: Array<{ questionId: string; answer: string }>,
     ) {
         return this.examsService.submitExam(attemptId, answers);
+    }
+
+    @Get('attempts/:attemptId/result')
+    async getAttemptResult(@Param('attemptId') attemptId: string) {
+        const attempt = await this.examsService.getAttemptById(attemptId);
+        const exam = await this.examsService.findById(attempt.examId);
+
+        if (!exam) {
+            throw new Error('Exam not found');
+        }
+
+        const passed = attempt.totalScore ? attempt.totalScore >= Number(exam.passingScore) : false;
+
+        return {
+            ...attempt,
+            exam,
+            passed,
+        };
     }
 
     @Post('attempts/:attemptId/grade')

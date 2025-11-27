@@ -2,19 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from './student.entity';
+import * as xlsx from 'xlsx';
+import { Express } from 'express';
 
 @Injectable()
 export class StudentsService {
     constructor(
         @InjectRepository(Student)
-        private studentsRepository: Repository<Student>,
+        public studentsRepository: Repository<Student>,
     ) { }
 
     async findAll(classId?: string): Promise<Student[]> {
+        const query = this.studentsRepository.createQueryBuilder('student')
+            .leftJoinAndSelect('student.class', 'class');
+
         if (classId) {
-            return this.studentsRepository.find({ where: { classId } });
+            query.where('student.classId = :classId', { classId });
         }
-        return this.studentsRepository.find();
+
+        return query.getMany();
     }
 
     async findById(id: string): Promise<Student | null> {
@@ -37,6 +43,51 @@ export class StudentsService {
 
     async delete(id: string): Promise<void> {
         await this.studentsRepository.delete(id);
+    }
+
+    async importFromExcel(file: any): Promise<any> {
+        const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet);
+
+        const studentsToCreate: Partial<Student>[] = [];
+        const errors: any[] = [];
+
+        for (const row of data as any[]) {
+            // Basic validation
+            if (!row.email || !row.name) {
+                errors.push({ row, error: 'Missing required fields (email, name)' });
+                continue;
+            }
+
+            // Check if student exists
+            const existingStudent = await this.studentsRepository.findOne({
+                where: [{ email: row.email }, { code: row.code }],
+            });
+
+            if (existingStudent) {
+                errors.push({ row, error: `Student with email ${row.email} or code ${row.code} already exists` });
+                continue;
+            }
+
+            studentsToCreate.push({
+                name: row.name,
+                email: row.email,
+                code: row.code,
+                phone: row.phone,
+                classId: row.classId,
+            });
+        }
+
+        if (studentsToCreate.length > 0) {
+            await this.studentsRepository.save(studentsToCreate);
+        }
+
+        return {
+            importedCount: studentsToCreate.length,
+            errors,
+        };
     }
 
     async bulkCreate(studentsData: Partial<Student>[]): Promise<Student[]> {

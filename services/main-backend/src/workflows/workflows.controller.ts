@@ -8,6 +8,7 @@ import {
     Param,
     Query,
     UseGuards,
+    Req,
 } from '@nestjs/common';
 import { WorkflowsService } from './workflows.service';
 import type { CreateWorkflowDto } from './workflows.service';
@@ -34,19 +35,29 @@ export class WorkflowsController {
     }
 
     @Post()
-    async create(@Body() workflowData: CreateWorkflowDto) {
-        return this.workflowsService.create(workflowData);
+    async create(@Body() workflowData: CreateWorkflowDto, @Req() req: any) {
+        console.log('Create Workflow Request:', { user: req.user, data: workflowData });
+        return this.workflowsService.create({
+            ...workflowData,
+            createdBy: req.user?.id,
+        });
     }
 
     @Post(':id/execute')
     async execute(
         @Param('id') workflowId: string,
         @Body() data: { triggeredBy: string; context?: Record<string, any> },
+        @Req() req: any,
     ) {
+        const context = data.context || {};
+        if (req.user && req.user.id) {
+            context.userId = req.user.id;
+        }
+
         return this.workflowsService.executeWorkflow(
             workflowId,
             data.triggeredBy,
-            data.context || {},
+            context,
         );
     }
 
@@ -68,12 +79,44 @@ export class WorkflowsController {
     }
 
     @Get('executions/:id')
-    async getExecution(@Param('id') id: string) {
-        return this.workflowsService.getExecutionById(id);
+    async getExecution(@Param('id') executionId: string) {
+        return this.workflowsService.getExecutionById(executionId);
     }
 
     @Post('executions/:id/cancel')
     async cancelExecution(@Param('id') id: string) {
         return this.workflowsService.cancelExecution(id);
+    }
+
+    // Template management
+    @Get('templates/all')
+    async getAllTemplates() {
+        return this.workflowsService.findAllTemplates();
+    }
+
+    @Post(':id/save-as-template')
+    async saveAsTemplate(
+        @Param('id') id: string,
+        @Body() data: { name?: string; description?: string; category?: string },
+        @Req() req: any
+    ) {
+        return this.workflowsService.saveAsTemplate(id, {
+            name: data.name,
+            description: data.description,
+            category: data.category,
+            createdBy: req.user?.id
+        });
+    }
+
+    @Post('templates/:id/use')
+    async useTemplate(
+        @Param('id') templateId: string,
+        @Body() data: { name?: string },
+        @Req() req: any
+    ) {
+        return this.workflowsService.useTemplate(templateId, {
+            name: data.name,
+            createdBy: req.user?.id
+        });
     }
 }

@@ -12,12 +12,14 @@ export class QuestionsService {
 
     async findAll(filters?: {
         subject?: string;
+        topic?: string;
         difficulty?: QuestionDifficulty;
         type?: QuestionType;
         createdBy?: string;
     }): Promise<Question[]> {
         const where: any = {};
         if (filters?.subject) where.subject = filters.subject;
+        if (filters?.topic) where.topic = filters.topic;
         if (filters?.difficulty) where.difficulty = filters.difficulty;
         if (filters?.type) where.type = filters.type;
         if (filters?.createdBy) where.createdBy = filters.createdBy;

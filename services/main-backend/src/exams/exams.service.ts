@@ -89,6 +89,16 @@ export class ExamsService {
         return gradedAttempt;
     }
 
+    async getAttemptById(attemptId: string): Promise<ExamAttempt> {
+        const attempt = await this.attemptsRepository.findOne({
+            where: { id: attemptId },
+        });
+        if (!attempt) {
+            throw new Error('Exam attempt not found');
+        }
+        return attempt;
+    }
+
     async gradeExam(attemptId: string): Promise<ExamResult> {
         const attempt = await this.attemptsRepository.findOne({
             where: { id: attemptId },
@@ -161,5 +171,14 @@ export class ExamsService {
                     ? results.reduce((sum, r) => sum + Number(r.percentage), 0) / total
                     : 0,
         };
+    }
+
+    async updateResult(resultId: string, updateData: Partial<ExamResult>): Promise<ExamResult> {
+        await this.resultsRepository.update(resultId, updateData);
+        const result = await this.resultsRepository.findOne({ where: { id: resultId } });
+        if (!result) {
+            throw new Error('Exam result not found');
+        }
+        return result;
     }
 }
