@@ -6,9 +6,9 @@ import { FormsService } from './forms.service';
 import { FormsController } from './forms.controller';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Form, FormResponse])],
-    controllers: [FormsController],
-    providers: [FormsService],
-    exports: [FormsService],
+  imports: [TypeOrmModule.forFeature([Form, FormResponse])],
+  controllers: [FormsController],
+  providers: [FormsService],
+  exports: [FormsService],
 })
-export class FormsModule { }
+export class FormsModule {}

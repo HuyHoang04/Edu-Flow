@@ -16,6 +16,7 @@ import {
     FileText,
     BarChart3,
     Workflow,
+    Presentation,
 } from "lucide-react";
 
 const menuItems = [
@@ -31,6 +32,7 @@ const menuItems = [
     { icon: Mail, label: "Email", href: "/dashboard/emails" },
     { icon: BarChart3, label: "Báo cáo", href: "/dashboard/reports" },
     { icon: Workflow, label: "Workflow", href: "/dashboard/workflows" },
+    { icon: Presentation, label: "Lectures", href: "/dashboard/lectures" },
 ];
 
 export function Sidebar() {

@@ -13,16 +13,16 @@ import { StudentsModule } from '../students/students.module';
 import { WorkflowsModule } from '../workflows/workflows.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Exam, ExamAttempt, ExamResult]),
-        QuestionsModule,
-        AuthModule,
-        AuthModule,
-        StudentsModule,
-        forwardRef(() => WorkflowsModule),
-    ],
-    controllers: [ExamsController],
-    providers: [ExamsService, GradingService],
-    exports: [ExamsService, GradingService],
+  imports: [
+    TypeOrmModule.forFeature([Exam, ExamAttempt, ExamResult]),
+    QuestionsModule,
+    AuthModule,
+    AuthModule,
+    StudentsModule,
+    forwardRef(() => WorkflowsModule),
+  ],
+  controllers: [ExamsController],
+  providers: [ExamsService, GradingService],
+  exports: [ExamsService, GradingService],
 })
-export class ExamsModule { }
+export class ExamsModule {}

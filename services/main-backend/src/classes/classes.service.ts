@@ -5,41 +5,45 @@ import { Class } from './class.entity';
 
 @Injectable()
 export class ClassesService {
-    constructor(
-        @InjectRepository(Class)
-        public classesRepository: Repository<Class>,
-    ) { }
+  constructor(
+    @InjectRepository(Class)
+    public classesRepository: Repository<Class>,
+  ) {}
 
-    async findAll(teacherId?: string): Promise<Class[]> {
-        const query = this.classesRepository.createQueryBuilder('class')
-            .loadRelationCountAndMap('class.studentCount', 'class.students');
+  async findAll(teacherId?: string): Promise<Class[]> {
+    const query = this.classesRepository
+      .createQueryBuilder('class')
+      .loadRelationCountAndMap('class.studentCount', 'class.students');
 
-        if (teacherId) {
-            query.where('class.teacherId = :teacherId', { teacherId });
-        }
-
-        return query.getMany();
+    if (teacherId) {
+      query.where('class.teacherId = :teacherId', { teacherId });
     }
 
-    async findById(id: string): Promise<Class | null> {
-        return this.classesRepository.findOne({ where: { id }, relations: ['students'] });
-    }
+    return query.getMany();
+  }
 
-    async create(classData: Partial<Class>): Promise<Class> {
-        const classEntity = this.classesRepository.create(classData);
-        return this.classesRepository.save(classEntity);
-    }
+  async findById(id: string): Promise<Class | null> {
+    return this.classesRepository.findOne({
+      where: { id },
+      relations: ['students'],
+    });
+  }
 
-    async update(id: string, classData: Partial<Class>): Promise<Class> {
-        await this.classesRepository.update(id, classData);
-        const classEntity = await this.findById(id);
-        if (!classEntity) {
-            throw new Error('Class not found');
-        }
-        return classEntity;
-    }
+  async create(classData: Partial<Class>): Promise<Class> {
+    const classEntity = this.classesRepository.create(classData);
+    return this.classesRepository.save(classEntity);
+  }
 
-    async delete(id: string): Promise<void> {
-        await this.classesRepository.delete(id);
+  async update(id: string, classData: Partial<Class>): Promise<Class> {
+    await this.classesRepository.update(id, classData);
+    const classEntity = await this.findById(id);
+    if (!classEntity) {
+      throw new Error('Class not found');
     }
+    return classEntity;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.classesRepository.delete(id);
+  }
 }

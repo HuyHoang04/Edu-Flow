@@ -9,7 +9,7 @@ export class AppController {
     private readonly appService: AppService,
     private readonly classesService: ClassesService,
     private readonly studentsService: StudentsService,
-  ) { }
+  ) {}
 
   @Get()
   getHello(): string {
@@ -22,15 +22,42 @@ export class AppController {
 
     console.log('🗑️ Clearing existing data...');
     // Use createQueryBuilder to bypass "empty criteria" check
-    await this.studentsService.studentsRepository.createQueryBuilder().delete().execute();
-    await this.classesService.classesRepository.createQueryBuilder().delete().execute();
+    await this.studentsService.studentsRepository
+      .createQueryBuilder()
+      .delete()
+      .execute();
+    await this.classesService.classesRepository
+      .createQueryBuilder()
+      .delete()
+      .execute();
     console.log('✅ Data cleared.');
 
     // 1. Create Classes
     const classesData = [
-      { name: 'Software Engineering A', code: 'SE101-A', semester: 'Fall 2023', year: 2023, teacherId: 'system', subject: 'Software Engineering' },
-      { name: 'Database Systems B', code: 'DB201-B', semester: 'Fall 2023', year: 2023, teacherId: 'system', subject: 'Database Systems' },
-      { name: 'Artificial Intelligence C', code: 'AI301-C', semester: 'Spring 2024', year: 2024, teacherId: 'system', subject: 'Artificial Intelligence' },
+      {
+        name: 'Software Engineering A',
+        code: 'SE101-A',
+        semester: 'Fall 2023',
+        year: 2023,
+        teacherId: 'system',
+        subject: 'Software Engineering',
+      },
+      {
+        name: 'Database Systems B',
+        code: 'DB201-B',
+        semester: 'Fall 2023',
+        year: 2023,
+        teacherId: 'system',
+        subject: 'Database Systems',
+      },
+      {
+        name: 'Artificial Intelligence C',
+        code: 'AI301-C',
+        semester: 'Spring 2024',
+        year: 2024,
+        teacherId: 'system',
+        subject: 'Artificial Intelligence',
+      },
     ];
 
     const createdClasses: any[] = [];
@@ -44,7 +71,7 @@ export class AppController {
       const studentNames = [
         ['Nguyen Van A', 'Tran Thi B', 'Le Van C', 'Pham Thi D', 'Hoang Van E'],
         ['Do Thi F', 'Ngo Van G', 'Vu Thi H', 'Dang Van I', 'Bui Thi K'],
-        ['Ly Van L', 'Truong Thi M', 'Dinh Van N', 'Vo Thi O', 'Bach Van P']
+        ['Ly Van L', 'Truong Thi M', 'Dinh Van N', 'Vo Thi O', 'Bach Van P'],
       ];
 
       for (let i = 0; i < createdClasses.length; i++) {
@@ -61,7 +88,7 @@ export class AppController {
             code,
             email,
             phone: '0123456789',
-            class: cls
+            class: cls,
           };
 
           try {
@@ -73,6 +100,10 @@ export class AppController {
       }
     }
 
-    return { message: 'Seeding complete!', classes: createdClasses.length, students: createdClasses.length * 5 };
+    return {
+      message: 'Seeding complete!',
+      classes: createdClasses.length,
+      students: createdClasses.length * 5,
+    };
   }
 }

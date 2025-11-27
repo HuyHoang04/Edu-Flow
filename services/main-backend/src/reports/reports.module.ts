@@ -9,15 +9,15 @@ import { StudentsModule } from '../students/students.module';
 import { ClassesModule } from '../classes/classes.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Report]),
-        AttendanceModule,
-        forwardRef(() => ExamsModule),
-        StudentsModule,
-        ClassesModule,
-    ],
-    controllers: [ReportsController],
-    providers: [ReportsService],
-    exports: [ReportsService],
+  imports: [
+    TypeOrmModule.forFeature([Report]),
+    AttendanceModule,
+    forwardRef(() => ExamsModule),
+    StudentsModule,
+    ClassesModule,
+  ],
+  controllers: [ReportsController],
+  providers: [ReportsService],
+  exports: [ReportsService],
 })
-export class ReportsModule { }
+export class ReportsModule {}

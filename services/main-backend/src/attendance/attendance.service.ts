@@ -1,72 +1,161 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
+import { AttendanceSession } from './attendance-session.entity';
 import { Attendance } from './attendance.entity';
 
 @Injectable()
 export class AttendanceService {
-    constructor(
-        @InjectRepository(Attendance)
-        private attendanceRepository: Repository<Attendance>,
-    ) { }
+  constructor(
+    @InjectRepository(Attendance)
+    private attendanceRepository: Repository<Attendance>,
+    @InjectRepository(AttendanceSession)
+    private attendanceSessionRepository: Repository<AttendanceSession>,
+  ) {}
 
-    async findAll(classId?: string, date?: string): Promise<Attendance[]> {
-        const where: any = {};
-        if (classId) where.classId = classId;
-        if (date) where.date = new Date(date);
-        return this.attendanceRepository.find({ where });
+  async createSession(data: {
+    classId: string;
+    scheduleId?: string;
+    timeoutMinutes: number;
+  }): Promise<AttendanceSession> {
+    const code = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit code
+    const now = new Date();
+    const expiryTime = new Date(now.getTime() + data.timeoutMinutes * 60000);
+
+    const session = this.attendanceSessionRepository.create({
+      classId: data.classId,
+      scheduleId: data.scheduleId,
+      code,
+      expiryTime,
+      isActive: true,
+    });
+
+    return this.attendanceSessionRepository.save(session);
+  }
+
+  async getSessionByCode(code: string): Promise<AttendanceSession | null> {
+    return this.attendanceSessionRepository.findOne({
+      where: { code, isActive: true },
+    });
+  }
+
+  async checkInWithCode(code: string, studentId: string): Promise<Attendance> {
+    const session = await this.getSessionByCode(code);
+    if (!session) {
+      throw new Error('Mã điểm danh không hợp lệ hoặc đã hết hạn');
     }
 
-    async findByStudent(studentId: string): Promise<Attendance[]> {
-        return this.attendanceRepository.find({ where: { studentId } });
+    if (new Date() > session.expiryTime) {
+      throw new Error('Mã điểm danh đã hết hạn');
     }
 
-    async findByClass(classId: string, startDate?: string, endDate?: string): Promise<Attendance[]> {
-        const where: any = { classId };
-        if (startDate && endDate) {
-            where.date = Between(new Date(startDate), new Date(endDate));
-        }
-        return this.attendanceRepository.find({ where, order: { date: 'DESC' } });
+    // Check if already checked in today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const existing = await this.attendanceRepository.findOne({
+      where: {
+        studentId,
+        classId: session.classId,
+        date: today,
+      },
+    });
+
+    if (existing) {
+      if (existing.status === 'present') {
+        return existing;
+      }
+      // Update status if previously absent/late
+      existing.status = 'present';
+      existing.note = 'Checked in via code';
+      return this.attendanceRepository.save(existing);
     }
 
-    async create(attendanceData: Partial<Attendance>): Promise<Attendance> {
-        const attendance = this.attendanceRepository.create(attendanceData);
-        return this.attendanceRepository.save(attendance);
-    }
+    // Create new record
+    const attendance = this.attendanceRepository.create({
+      studentId,
+      classId: session.classId,
+      scheduleId: session.scheduleId,
+      date: today,
+      status: 'present',
+      note: 'Checked in via code',
+    });
 
-    async bulkCreate(attendanceData: Partial<Attendance>[]): Promise<Attendance[]> {
-        const attendanceRecords = this.attendanceRepository.create(attendanceData);
-        return this.attendanceRepository.save(attendanceRecords);
-    }
+    return this.attendanceRepository.save(attendance);
+  }
 
-    async update(id: string, attendanceData: Partial<Attendance>): Promise<Attendance> {
-        await this.attendanceRepository.update(id, attendanceData);
-        const attendance = await this.attendanceRepository.findOne({ where: { id } });
-        if (!attendance) {
-            throw new Error('Attendance record not found');
-        }
-        return attendance;
-    }
+  async findAll(classId?: string, date?: string): Promise<Attendance[]> {
+    const where: any = {};
+    if (classId) where.classId = classId;
+    if (date) where.date = new Date(date);
+    return this.attendanceRepository.find({ where });
+  }
 
-    async delete(id: string): Promise<void> {
-        await this.attendanceRepository.delete(id);
-    }
+  async findByStudent(studentId: string): Promise<Attendance[]> {
+    return this.attendanceRepository.find({ where: { studentId } });
+  }
 
-    async getAttendanceStats(classId: string, startDate?: string, endDate?: string) {
-        const records = await this.findByClass(classId, startDate, endDate);
-        const total = records.length;
-        const present = records.filter(r => r.status === 'present').length;
-        const absent = records.filter(r => r.status === 'absent').length;
-        const late = records.filter(r => r.status === 'late').length;
-        const excused = records.filter(r => r.status === 'excused').length;
-
-        return {
-            total,
-            present,
-            absent,
-            late,
-            excused,
-            presentRate: total > 0 ? (present / total) * 100 : 0,
-        };
+  async findByClass(
+    classId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<Attendance[]> {
+    const where: any = { classId };
+    if (startDate && endDate) {
+      where.date = Between(new Date(startDate), new Date(endDate));
     }
+    return this.attendanceRepository.find({ where, order: { date: 'DESC' } });
+  }
+
+  async create(attendanceData: Partial<Attendance>): Promise<Attendance> {
+    const attendance = this.attendanceRepository.create(attendanceData);
+    return this.attendanceRepository.save(attendance);
+  }
+
+  async bulkCreate(
+    attendanceData: Partial<Attendance>[],
+  ): Promise<Attendance[]> {
+    const attendanceRecords = this.attendanceRepository.create(attendanceData);
+    return this.attendanceRepository.save(attendanceRecords);
+  }
+
+  async update(
+    id: string,
+    attendanceData: Partial<Attendance>,
+  ): Promise<Attendance> {
+    await this.attendanceRepository.update(id, attendanceData);
+    const attendance = await this.attendanceRepository.findOne({
+      where: { id },
+    });
+    if (!attendance) {
+      throw new Error('Attendance record not found');
+    }
+    return attendance;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.attendanceRepository.delete(id);
+  }
+
+  async getAttendanceStats(
+    classId: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const records = await this.findByClass(classId, startDate, endDate);
+    const total = records.length;
+    const present = records.filter((r) => r.status === 'present').length;
+    const absent = records.filter((r) => r.status === 'absent').length;
+    const late = records.filter((r) => r.status === 'late').length;
+    const excused = records.filter((r) => r.status === 'excused').length;
+
+    return {
+      total,
+      present,
+      absent,
+      late,
+      excused,
+      presentRate: total > 0 ? (present / total) * 100 : 0,
+    };
+  }
 }

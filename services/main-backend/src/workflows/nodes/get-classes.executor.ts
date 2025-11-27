@@ -6,45 +6,47 @@ import { Class } from '../../classes/class.entity';
 
 @Injectable()
 export class GetClassesNodeExecutor implements NodeExecutor {
-    constructor(
-        @InjectRepository(Class)
-        private classRepository: Repository<Class>
-    ) { }
+  constructor(
+    @InjectRepository(Class)
+    private classRepository: Repository<Class>,
+  ) {}
 
-    async execute(node: any, context: any): Promise<any> {
-        const { semester, outputKey = 'classes' } = node.data;
+  async execute(node: any, context: any): Promise<any> {
+    const { semester, outputKey = 'classes' } = node.data;
 
-        console.log(`[GetClassesExecutor] Fetching classes (semester: ${semester || 'all'})`);
+    console.log(
+      `[GetClassesExecutor] Fetching classes (semester: ${semester || 'all'})`,
+    );
 
-        try {
-            let classes;
+    try {
+      let classes;
 
-            if (semester) {
-                classes = await this.classRepository.find({
-                    where: { semester }
-                });
-            } else {
-                classes = await this.classRepository.find();
-            }
+      if (semester) {
+        classes = await this.classRepository.find({
+          where: { semester },
+        });
+      } else {
+        classes = await this.classRepository.find();
+      }
 
-            context[outputKey] = classes;
-            context[`${outputKey}_count`] = classes.length;
+      context[outputKey] = classes;
+      context[`${outputKey}_count`] = classes.length;
 
-            console.log(`[GetClassesExecutor] Found ${classes.length} classes`);
+      console.log(`[GetClassesExecutor] Found ${classes.length} classes`);
 
-            return {
-                success: true,
-                nextNodes: node.data.nextNodes || [],
-                context
-            };
-        } catch (error: any) {
-            console.error('[GetClassesExecutor] Error:', error.message);
-            return {
-                success: false,
-                error: error.message,
-                nextNodes: [],
-                context
-            };
-        }
+      return {
+        success: true,
+        nextNodes: node.data.nextNodes || [],
+        context,
+      };
+    } catch (error: any) {
+      console.error('[GetClassesExecutor] Error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        nextNodes: [],
+        context,
+      };
     }
+  }
 }

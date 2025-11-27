@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import generate, grade
+from app.routers import generate, grade, lectures, workflows
+
 
 app = FastAPI(
     title="AI Service",
@@ -20,6 +21,12 @@ app.add_middleware(
 # Include routers
 app.include_router(generate.router)
 app.include_router(grade.router)
+app.include_router(lectures.router)
+app.include_router(workflows.router)
+
+print("Loaded routers:")
+for route in app.routes:
+    print(f"Path: {route.path}, Name: {route.name}")
 
 
 @app.get("/")

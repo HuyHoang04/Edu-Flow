@@ -31,6 +31,10 @@ class AIClient:
         """Grade a submission against a rubric"""
         return await self.client.grade(submission, rubric, max_score)
 
+    async def generate_json(self, prompt: str) -> Dict[str, Any]:
+        """Generate JSON response from prompt"""
+        return await self.client.generate_json(prompt)
+
 
 class OpenAIClient:
     """OpenAI GPT client"""
@@ -73,13 +77,14 @@ Respond in JSON format:
   "strengths": ["<item>"],
   "improvements": ["<item>"]
 }}"""
-        
+        return await self.generate_json(prompt)
+
+    async def generate_json(self, prompt: str) -> Dict[str, Any]:
         response = await self.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
-        
         import json
         return json.loads(response.choices[0].message.content)
 
@@ -94,7 +99,7 @@ class GeminiClient:
             if not api_key:
                 raise ValueError("GEMINI_API_KEY not found in environment")
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-flash-latest')
+            self.model = genai.GenerativeModel('gemini-2.0-flash')
         except ImportError:
             raise ImportError("google-generativeai package not installed. Run: pip install google-generativeai")
     
@@ -142,7 +147,9 @@ Respond in JSON format:
   "strengths": ["<item>"],
   "improvements": ["<item>"]
 }}"""
-        
+        return await self.generate_json(prompt)
+
+    async def generate_json(self, prompt: str) -> Dict[str, Any]:
         response = self.model.generate_content(prompt)
         import json
         import re
@@ -151,10 +158,18 @@ Respond in JSON format:
         text = response.text.strip()
         # Remove ```json and ``` markers
         text = re.sub(r'^```json\s*', '', text)
+        text = re.sub(r'^```\s*', '', text)
         text = re.sub(r'```\s*$', '', text)
         text = text.strip()
         
-        return json.loads(text)
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            # Fallback: try to find JSON object in text
+            match = re.search(r'\{.*\}', text, re.DOTALL)
+            if match:
+                return json.loads(match.group(0))
+            raise ValueError(f"Failed to parse JSON response: {text}")
 
 
 class Phi3Client:
@@ -203,13 +218,14 @@ Respond in JSON format ONLY:
   "strengths": ["<item>"],
   "improvements": ["<item>"]
 }}"""
-        
+        return await self.generate_json(prompt)
+
+    async def generate_json(self, prompt: str) -> Dict[str, Any]:
         response = self.client.generate(
             model=self.model,
             prompt=prompt,
             format="json"
         )
-        
         import json
         return json.loads(response['response'])
 

@@ -1,58 +1,58 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity('workflows')
 export class Workflow {
-    @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Column({ type: 'jsonb' })
+  nodes: Array<{
     id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: any;
+  }>;
 
-    @Column()
-    name: string;
+  @Column({ type: 'jsonb' })
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+  }>;
 
-    @Column({ type: 'text', nullable: true })
-    description: string;
+  @Column()
+  createdBy: string;
 
-    @Column({ type: 'jsonb' })
-    nodes: Array<{
-        id: string;
-        type: string;
-        position: { x: number; y: number };
-        data: any;
-    }>;
+  @Column({ default: true })
+  isActive: boolean;
 
-    @Column({ type: 'jsonb' })
-    edges: Array<{
-        id: string;
-        source: string;
-        target: string;
-    }>;
+  @Column({ default: false })
+  isTemplate: boolean;
 
-    @Column()
-    createdBy: string;
+  @Column({ nullable: true })
+  category: string; // For templates: 'education', 'automation', 'notification', etc.
 
-    @Column({ default: true })
-    isActive: boolean;
+  @Column({ type: 'jsonb', nullable: true })
+  trigger: {
+    type: 'manual' | 'schedule' | 'event';
+    config?: any;
+  };
 
-    @Column({ default: false })
-    isTemplate: boolean;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @Column({ nullable: true })
-    category: string; // For templates: 'education', 'automation', 'notification', etc.
-
-    @Column({ type: 'jsonb', nullable: true })
-    trigger: {
-        type: 'manual' | 'schedule' | 'event';
-        config?: any;
-    };
-
-    @CreateDateColumn()
-    createdAt: Date;
-
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

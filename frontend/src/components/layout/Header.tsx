@@ -2,6 +2,7 @@
 
 import { Bell, User } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { NotificationBell } from "./NotificationBell";
 
 export function Header() {
     return (
@@ -21,11 +22,7 @@ export function Header() {
 
                 <div className="flex items-center gap-4">
                     <ThemeToggle />
-
-                    <button className="relative rounded-full p-2 hover:bg-muted">
-                        <Bell className="h-5 w-5" />
-                        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-                    </button>
+                    <NotificationBell />
 
                     <button className="flex items-center gap-2 rounded-lg border px-3 py-2 hover:bg-muted">
                         <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">

@@ -29,40 +29,47 @@ import { ExamResult } from '../exams/exam-result.entity';
 import { ExamsModule } from '../exams/exams.module';
 import { QuestionsModule } from '../questions/questions.module';
 import { ReportsModule } from '../reports/reports.module';
+import { AttendanceModule } from '../attendance/attendance.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { CreateAttendanceSessionExecutor } from './nodes/create-attendance-session.executor';
+import { SendNotificationExecutor } from './nodes/send-notification.executor';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Workflow, WorkflowExecution, Class, ExamResult]),
-        EmailsModule,
-        StudentsModule,
-        StudentsModule,
-        forwardRef(() => ExamsModule),
-        QuestionsModule,
-        FormsModule,
-        ReportsModule,
-    ],
-    controllers: [WorkflowsController],
-    providers: [
-        WorkflowsService,
-        WorkflowSchedulerService,
-        NodeRegistryService,
-        ManualTriggerExecutor,
-        SendEmailNodeExecutor,
-        CreateExamNodeExecutor,
-        AssignGradeNodeExecutor,
-        UpdateStudentNodeExecutor,
-        ConditionNodeExecutor,
-        LoopNodeExecutor,
-        AIGenerateExecutor,
-        AIGradeExecutor,
-        DelayNodeExecutor,
-        GetStudentsNodeExecutor,
-        GetClassesNodeExecutor,
-        GetClassesNodeExecutor,
-        GetExamResultsNodeExecutor,
-        FormNodeExecutor,
-        ReportNodeExecutor,
-    ],
-    exports: [WorkflowsService],
+  imports: [
+    TypeOrmModule.forFeature([Workflow, WorkflowExecution, Class, ExamResult]),
+    EmailsModule,
+    StudentsModule,
+    StudentsModule,
+    forwardRef(() => ExamsModule),
+    QuestionsModule,
+    FormsModule,
+    ReportsModule,
+    AttendanceModule,
+    NotificationsModule,
+  ],
+  controllers: [WorkflowsController],
+  providers: [
+    WorkflowsService,
+    WorkflowSchedulerService,
+    NodeRegistryService,
+    ManualTriggerExecutor,
+    SendEmailNodeExecutor,
+    CreateExamNodeExecutor,
+    AssignGradeNodeExecutor,
+    UpdateStudentNodeExecutor,
+    ConditionNodeExecutor,
+    LoopNodeExecutor,
+    AIGenerateExecutor,
+    AIGradeExecutor,
+    DelayNodeExecutor,
+    GetStudentsNodeExecutor,
+    GetClassesNodeExecutor,
+    GetExamResultsNodeExecutor,
+    FormNodeExecutor,
+    ReportNodeExecutor,
+    CreateAttendanceSessionExecutor,
+    SendNotificationExecutor,
+  ],
+  exports: [WorkflowsService],
 })
-export class WorkflowsModule { }
+export class WorkflowsModule {}

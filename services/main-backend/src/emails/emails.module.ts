@@ -6,9 +6,9 @@ import { EmailsController } from './emails.controller';
 import { MailerService } from './mailer.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Email])],
-    controllers: [EmailsController],
-    providers: [EmailsService, MailerService],
-    exports: [EmailsService, MailerService],
+  imports: [TypeOrmModule.forFeature([Email])],
+  controllers: [EmailsController],
+  providers: [EmailsService, MailerService],
+  exports: [EmailsService, MailerService],
 })
-export class EmailsModule { }
+export class EmailsModule {}

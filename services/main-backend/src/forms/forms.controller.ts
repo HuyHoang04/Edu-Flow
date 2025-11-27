@@ -1,13 +1,13 @@
 import {
-    Controller,
-    Get,
-    Post,
-    Put,
-    Delete,
-    Body,
-    Param,
-    Query,
-    UseGuards,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { FormsService } from './forms.service';
 import type { CreateFormDto, SubmitResponseDto } from './forms.service';
@@ -15,72 +15,72 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('forms')
 export class FormsController {
-    constructor(private formsService: FormsService) { }
+  constructor(private formsService: FormsService) {}
 
-    // Public endpoint for form viewing and submission
-    @Get('public/:id')
-    async getPublicForm(@Param('id') id: string) {
-        return this.formsService.findById(id);
-    }
+  // Public endpoint for form viewing and submission
+  @Get('public/:id')
+  async getPublicForm(@Param('id') id: string) {
+    return this.formsService.findById(id);
+  }
 
-    @Post('public/:id/submit')
-    async submitPublicResponse(
-        @Param('id') formId: string,
-        @Body() responseData: Omit<SubmitResponseDto, 'formId'>,
-    ) {
-        return this.formsService.submitResponse({
-            ...responseData,
-            formId,
-        });
-    }
+  @Post('public/:id/submit')
+  async submitPublicResponse(
+    @Param('id') formId: string,
+    @Body() responseData: Omit<SubmitResponseDto, 'formId'>,
+  ) {
+    return this.formsService.submitResponse({
+      ...responseData,
+      formId,
+    });
+  }
 
-    // Protected endpoints
-    @Get()
-    @UseGuards(JwtAuthGuard)
-    async findAll(@Query('createdBy') createdBy?: string) {
-        return this.formsService.findAll(createdBy);
-    }
+  // Protected endpoints
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async findAll(@Query('createdBy') createdBy?: string) {
+    return this.formsService.findAll(createdBy);
+  }
 
-    @Get(':id')
-    @UseGuards(JwtAuthGuard)
-    async findOne(@Param('id') id: string) {
-        return this.formsService.findById(id);
-    }
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async findOne(@Param('id') id: string) {
+    return this.formsService.findById(id);
+  }
 
-    @Get(':id/responses')
-    @UseGuards(JwtAuthGuard)
-    async getResponses(@Param('id') id: string) {
-        return this.formsService.getFormResponses(id);
-    }
+  @Get(':id/responses')
+  @UseGuards(JwtAuthGuard)
+  async getResponses(@Param('id') id: string) {
+    return this.formsService.getFormResponses(id);
+  }
 
-    @Get(':id/stats')
-    @UseGuards(JwtAuthGuard)
-    async getStats(@Param('id') id: string) {
-        return this.formsService.getFormStats(id);
-    }
+  @Get(':id/stats')
+  @UseGuards(JwtAuthGuard)
+  async getStats(@Param('id') id: string) {
+    return this.formsService.getFormStats(id);
+  }
 
-    @Get(':id/export')
-    @UseGuards(JwtAuthGuard)
-    async exportResponses(@Param('id') id: string) {
-        return this.formsService.exportResponses(id);
-    }
+  @Get(':id/export')
+  @UseGuards(JwtAuthGuard)
+  async exportResponses(@Param('id') id: string) {
+    return this.formsService.exportResponses(id);
+  }
 
-    @Post()
-    @UseGuards(JwtAuthGuard)
-    async create(@Body() formData: CreateFormDto) {
-        return this.formsService.create(formData);
-    }
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  async create(@Body() formData: CreateFormDto) {
+    return this.formsService.create(formData);
+  }
 
-    @Put(':id')
-    @UseGuards(JwtAuthGuard)
-    async update(@Param('id') id: string, @Body() formData: CreateFormDto) {
-        return this.formsService.update(id, formData);
-    }
+  @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  async update(@Param('id') id: string, @Body() formData: CreateFormDto) {
+    return this.formsService.update(id, formData);
+  }
 
-    @Delete(':id')
-    @UseGuards(JwtAuthGuard)
-    async delete(@Param('id') id: string) {
-        await this.formsService.delete(id);
-        return { message: 'Form deleted successfully' };
-    }
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async delete(@Param('id') id: string) {
+    await this.formsService.delete(id);
+    return { message: 'Form deleted successfully' };
+  }
 }

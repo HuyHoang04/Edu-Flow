@@ -34,6 +34,12 @@ export interface ExamAttempt {
 export interface ExamResult extends ExamAttempt {
     exam?: Exam;
     passed?: boolean;
+    student?: {
+        id: string;
+        name: string;
+        code: string;
+        email: string;
+    };
 }
 
 export const ExamService = {
@@ -44,6 +50,11 @@ export const ExamService = {
 
     getById: async (id: string) => {
         const response = await api.get<Exam>(`/exams/${id}`);
+        return response.data;
+    },
+
+    getExamResults: async (id: string) => {
+        const response = await api.get<ExamAttempt[]>(`/exams/${id}/results`);
         return response.data;
     },
 

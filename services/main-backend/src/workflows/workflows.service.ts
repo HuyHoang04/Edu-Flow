@@ -2,332 +2,377 @@ import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Workflow } from './workflow.entity';
-import { WorkflowExecution, ExecutionStatus } from './workflow-execution.entity';
+import {
+  WorkflowExecution,
+  ExecutionStatus,
+} from './workflow-execution.entity';
 import { NodeRegistryService } from './node-registry.service';
 import { ExamsService } from '../exams/exams.service';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 
 export interface CreateWorkflowDto {
-    name: string;
-    description?: string;
-    nodes: Array<{
-        id: string;
-        type: string;
-        position: { x: number; y: number };
-        data: any;
-    }>;
-    edges: Array<{
-        id: string;
-        source: string;
-        target: string;
-    }>;
-    createdBy: string;
-    trigger?: {
-        type: 'manual' | 'schedule' | 'event';
-        config?: any;
-    };
+  name: string;
+  description?: string;
+  nodes: Array<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: any;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+  }>;
+  createdBy: string;
+  trigger?: {
+    type: 'manual' | 'schedule' | 'event';
+    config?: any;
+  };
 }
 
 @Injectable()
 export class WorkflowsService {
-    constructor(
-        @InjectRepository(Workflow)
-        private workflowsRepository: Repository<Workflow>,
-        @InjectRepository(WorkflowExecution)
-        private executionsRepository: Repository<WorkflowExecution>,
-        private nodeRegistry: NodeRegistryService,
-        @Inject(forwardRef(() => ExamsService))
-        private examsService: ExamsService,
-    ) { }
+  constructor(
+    @InjectRepository(Workflow)
+    private workflowsRepository: Repository<Workflow>,
+    @InjectRepository(WorkflowExecution)
+    private executionsRepository: Repository<WorkflowExecution>,
+    private nodeRegistry: NodeRegistryService,
+    @Inject(forwardRef(() => ExamsService))
+    @Inject(forwardRef(() => ExamsService))
+    private examsService: ExamsService,
+    private configService: ConfigService,
+  ) {}
 
-    // Workflow CRUD
-    async findAll(createdBy?: string): Promise<Workflow[]> {
-        if (createdBy) {
-            return this.workflowsRepository.find({ where: { createdBy } });
-        }
-        return this.workflowsRepository.find({ order: { createdAt: 'DESC' } });
+  async generateFromPrompt(prompt: string): Promise<any> {
+    const aiServiceUrl =
+      this.configService.get('AI_SERVICE_URL') || 'http://localhost:8000';
+    try {
+      const response = await axios.post(`${aiServiceUrl}/workflows/generate`, {
+        prompt,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to generate workflow:', error);
+      throw new Error('Failed to generate workflow');
+    }
+  }
+
+  // Workflow CRUD
+  async findAll(createdBy?: string): Promise<Workflow[]> {
+    if (createdBy) {
+      return this.workflowsRepository.find({ where: { createdBy } });
+    }
+    return this.workflowsRepository.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async findById(id: string): Promise<Workflow | null> {
+    return this.workflowsRepository.findOne({ where: { id } });
+  }
+
+  async create(workflowData: CreateWorkflowDto): Promise<Workflow> {
+    const workflow = this.workflowsRepository.create({
+      ...workflowData,
+      isActive: true,
+    });
+    return this.workflowsRepository.save(workflow);
+  }
+
+  async update(id: string, workflowData: Partial<Workflow>): Promise<Workflow> {
+    await this.workflowsRepository.update(id, workflowData);
+    const workflow = await this.findById(id);
+    if (!workflow) {
+      throw new Error('Workflow not found');
+    }
+    return workflow;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.workflowsRepository.delete(id);
+  }
+
+  // Template Management
+  async findAllTemplates(): Promise<Workflow[]> {
+    return this.workflowsRepository.find({
+      where: { isTemplate: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async saveAsTemplate(
+    workflowId: string,
+    templateData: {
+      name?: string;
+      description?: string;
+      category?: string;
+      createdBy?: string;
+    },
+  ): Promise<Workflow> {
+    const workflow = await this.findById(workflowId);
+    if (!workflow) {
+      throw new Error('Workflow not found');
     }
 
-    async findById(id: string): Promise<Workflow | null> {
-        return this.workflowsRepository.findOne({ where: { id } });
+    const template = this.workflowsRepository.create({
+      name: templateData.name || `${workflow.name} (Template)`,
+      description: templateData.description || workflow.description,
+      category: templateData.category,
+      nodes: workflow.nodes,
+      edges: workflow.edges,
+      trigger: workflow.trigger,
+      isTemplate: true,
+      isActive: true,
+      createdBy: templateData.createdBy || workflow.createdBy,
+    });
+
+    return this.workflowsRepository.save(template);
+  }
+
+  async useTemplate(
+    templateId: string,
+    workflowData: { name?: string; createdBy?: string },
+  ): Promise<Workflow> {
+    const template = await this.findById(templateId);
+    if (!template) {
+      throw new Error('Template not found');
     }
 
-    async create(workflowData: CreateWorkflowDto): Promise<Workflow> {
-        const workflow = this.workflowsRepository.create({
-            ...workflowData,
-            isActive: true,
-        });
-        return this.workflowsRepository.save(workflow);
+    if (!template.isTemplate) {
+      throw new Error('This is not a template');
     }
 
-    async update(id: string, workflowData: Partial<Workflow>): Promise<Workflow> {
-        await this.workflowsRepository.update(id, workflowData);
-        const workflow = await this.findById(id);
-        if (!workflow) {
-            throw new Error('Workflow not found');
-        }
-        return workflow;
+    const workflow = this.workflowsRepository.create({
+      name: workflowData.name || `Copy of ${template.name}`,
+      description: template.description,
+      nodes: template.nodes,
+      edges: template.edges,
+      trigger: template.trigger,
+      isTemplate: false,
+      isActive: true,
+      createdBy: workflowData.createdBy || template.createdBy,
+    });
+
+    return this.workflowsRepository.save(workflow);
+  }
+
+  async triggerWorkflowsByEvent(event: string, context: any): Promise<void> {
+    // Find all active workflows with this event trigger
+    // Note: This assumes trigger config is stored in JSONB and we might need a more robust query
+    // For now, we'll fetch all active workflows and filter in memory (not efficient for large scale but fine for MVP)
+    const activeWorkflows = await this.workflowsRepository.find({
+      where: { isActive: true },
+    });
+
+    const matchingWorkflows = activeWorkflows.filter(
+      (w) => w.trigger?.type === 'event' && w.trigger?.config?.event === event,
+    );
+
+    console.log(
+      `[WorkflowsService] Found ${matchingWorkflows.length} workflows for event: ${event}`,
+    );
+
+    for (const workflow of matchingWorkflows) {
+      await this.executeWorkflow(workflow.id, 'event', context);
+    }
+  }
+
+  // Workflow Execution
+  async executeWorkflow(
+    workflowId: string,
+    triggeredBy: string,
+    initialContext: Record<string, any> = {},
+  ): Promise<WorkflowExecution> {
+    const workflow = await this.findById(workflowId);
+    if (!workflow) {
+      throw new Error('Workflow not found');
     }
 
-    async delete(id: string): Promise<void> {
-        await this.workflowsRepository.delete(id);
+    if (!workflow.isActive) {
+      throw new Error('Workflow is not active');
     }
 
-    // Template Management
-    async findAllTemplates(): Promise<Workflow[]> {
-        return this.workflowsRepository.find({
-            where: { isTemplate: true },
-            order: { createdAt: 'DESC' }
-        });
-    }
+    // Create execution record
+    const execution = this.executionsRepository.create({
+      workflowId,
+      status: ExecutionStatus.RUNNING,
+      context: initialContext,
+      triggeredBy,
+      startedAt: new Date(),
+      executedNodes: [],
+    });
 
-    async saveAsTemplate(
-        workflowId: string,
-        templateData: { name?: string; description?: string; category?: string; createdBy?: string }
-    ): Promise<Workflow> {
-        const workflow = await this.findById(workflowId);
-        if (!workflow) {
-            throw new Error('Workflow not found');
-        }
+    const savedExecution = await this.executionsRepository.save(execution);
 
-        const template = this.workflowsRepository.create({
-            name: templateData.name || `${workflow.name} (Template)`,
-            description: templateData.description || workflow.description,
-            category: templateData.category,
-            nodes: workflow.nodes,
-            edges: workflow.edges,
-            trigger: workflow.trigger,
-            isTemplate: true,
-            isActive: true,
-            createdBy: templateData.createdBy || workflow.createdBy
-        });
+    // Execute workflow in background
+    this.runWorkflow(savedExecution.id, workflow, initialContext).catch(
+      (error) => {
+        console.error('Workflow execution error:', error);
+      },
+    );
 
-        return this.workflowsRepository.save(template);
-    }
+    return savedExecution;
+  }
 
-    async useTemplate(
-        templateId: string,
-        workflowData: { name?: string; createdBy?: string }
-    ): Promise<Workflow> {
-        const template = await this.findById(templateId);
-        if (!template) {
-            throw new Error('Template not found');
-        }
+  private async runWorkflow(
+    executionId: string,
+    workflow: Workflow,
+    context: Record<string, any>,
+  ): Promise<void> {
+    const execution = await this.executionsRepository.findOne({
+      where: { id: executionId },
+    });
 
-        if (!template.isTemplate) {
-            throw new Error('This is not a template');
-        }
+    if (!execution) return;
 
-        const workflow = this.workflowsRepository.create({
-            name: workflowData.name || `Copy of ${template.name}`,
-            description: template.description,
-            nodes: template.nodes,
-            edges: template.edges,
-            trigger: template.trigger,
-            isTemplate: false,
-            isActive: true,
-            createdBy: workflowData.createdBy || template.createdBy
-        });
+    try {
+      console.log('Workflow Nodes:', JSON.stringify(workflow.nodes, null, 2));
 
-        return this.workflowsRepository.save(workflow);
-    }
+      // Find start node - prioritize explicit startNodeId
+      let startNode;
 
-    async triggerWorkflowsByEvent(event: string, context: any): Promise<void> {
-        // Find all active workflows with this event trigger
-        // Note: This assumes trigger config is stored in JSONB and we might need a more robust query
-        // For now, we'll fetch all active workflows and filter in memory (not efficient for large scale but fine for MVP)
-        const activeWorkflows = await this.workflowsRepository.find({ where: { isActive: true } });
-
-        const matchingWorkflows = activeWorkflows.filter(w =>
-            w.trigger?.type === 'event' && w.trigger?.config?.event === event
+      // First, check if workflow has explicit startNodeId
+      if ((workflow as any).startNodeId) {
+        startNode = workflow.nodes.find(
+          (n) => n.id === (workflow as any).startNodeId,
         );
-
-        console.log(`[WorkflowsService] Found ${matchingWorkflows.length} workflows for event: ${event}`);
-
-        for (const workflow of matchingWorkflows) {
-            await this.executeWorkflow(workflow.id, 'event', context);
-        }
-    }
-
-    // Workflow Execution
-    async executeWorkflow(
-        workflowId: string,
-        triggeredBy: string,
-        initialContext: Record<string, any> = {},
-    ): Promise<WorkflowExecution> {
-        const workflow = await this.findById(workflowId);
-        if (!workflow) {
-            throw new Error('Workflow not found');
-        }
-
-        if (!workflow.isActive) {
-            throw new Error('Workflow is not active');
-        }
-
-        // Create execution record
-        const execution = this.executionsRepository.create({
-            workflowId,
-            status: ExecutionStatus.RUNNING,
-            context: initialContext,
-            triggeredBy,
-            startedAt: new Date(),
-            executedNodes: [],
-        });
-
-        const savedExecution = await this.executionsRepository.save(execution);
-
-        // Execute workflow in background
-        this.runWorkflow(savedExecution.id, workflow, initialContext).catch(
-            (error) => {
-                console.error('Workflow execution error:', error);
-            },
+        console.log(
+          `[Workflow] Using explicit startNodeId: ${(workflow as any).startNodeId}`,
         );
+      }
 
-        return savedExecution;
-    }
-
-    private async runWorkflow(
-        executionId: string,
-        workflow: Workflow,
-        context: Record<string, any>,
-    ): Promise<void> {
-        const execution = await this.executionsRepository.findOne({
-            where: { id: executionId },
-        });
-
-        if (!execution) return;
-
-        try {
-            console.log('Workflow Nodes:', JSON.stringify(workflow.nodes, null, 2));
-
-            // Find start node - prioritize explicit startNodeId
-            let startNode;
-
-            // First, check if workflow has explicit startNodeId
-            if ((workflow as any).startNodeId) {
-                startNode = workflow.nodes.find(n => n.id === (workflow as any).startNodeId);
-                console.log(`[Workflow] Using explicit startNodeId: ${(workflow as any).startNodeId}`);
-            }
-
-            // Fallback to heuristic detection
-            if (!startNode) {
-                if (execution.triggeredBy === 'manual') {
-                    startNode = workflow.nodes.find(n => n.data.nodeType === 'manual-trigger');
-                } else {
-                    // For event-triggered workflows, use first node or trigger node
-                    startNode = workflow.nodes.find(n => n.type === 'trigger' || n.data.category === 'Trigger');
-                    // If no trigger found, use first node
-                    if (!startNode && workflow.nodes.length > 0) {
-                        startNode = workflow.nodes[0];
-                        console.log(`[Workflow] No trigger found, using first node: ${startNode.id}`);
-                    }
-                }
-            }
-
-            if (!startNode) {
-                throw new Error('No start node found');
-            }
-
-            console.log(`[Workflow] Starting execution from node: ${startNode.id}`);
-            await this.executeNode(execution, workflow, startNode, context);
-
-            execution.status = ExecutionStatus.COMPLETED;
-            execution.completedAt = new Date();
-            await this.executionsRepository.save(execution);
-        } catch (error: any) {
-            console.error('[Workflow] Execution failed:', error);
-            execution.status = ExecutionStatus.FAILED;
-            execution.errorMessage = error.message;
-            execution.completedAt = new Date();
-            await this.executionsRepository.save(execution);
+      // Fallback to heuristic detection
+      if (!startNode) {
+        if (execution.triggeredBy === 'manual') {
+          startNode = workflow.nodes.find(
+            (n) => n.data.nodeType === 'manual-trigger',
+          );
+        } else {
+          // For event-triggered workflows, use first node or trigger node
+          startNode = workflow.nodes.find(
+            (n) => n.type === 'trigger' || n.data.category === 'Trigger',
+          );
+          // If no trigger found, use first node
+          if (!startNode && workflow.nodes.length > 0) {
+            startNode = workflow.nodes[0];
+            console.log(
+              `[Workflow] No trigger found, using first node: ${startNode.id}`,
+            );
+          }
         }
+      }
+
+      if (!startNode) {
+        throw new Error('No start node found');
+      }
+
+      console.log(`[Workflow] Starting execution from node: ${startNode.id}`);
+      await this.executeNode(execution, workflow, startNode, context);
+
+      execution.status = ExecutionStatus.COMPLETED;
+      execution.completedAt = new Date();
+      await this.executionsRepository.save(execution);
+    } catch (error: any) {
+      console.error('[Workflow] Execution failed:', error);
+      execution.status = ExecutionStatus.FAILED;
+      execution.errorMessage = error.message;
+      execution.completedAt = new Date();
+      await this.executionsRepository.save(execution);
     }
+  }
 
-    private async executeNode(
-        execution: WorkflowExecution,
-        workflow: Workflow,
-        node: any,
-        context: Record<string, any>,
-    ): Promise<void> {
-        const nodeExecution = {
-            nodeId: node.id,
-            status: 'running',
-            timestamp: new Date().toISOString(),
-        };
+  private async executeNode(
+    execution: WorkflowExecution,
+    workflow: Workflow,
+    node: any,
+    context: Record<string, any>,
+  ): Promise<void> {
+    const nodeExecution = {
+      nodeId: node.id,
+      status: 'running',
+      timestamp: new Date().toISOString(),
+    };
 
-        try {
-            // Support both node.data.nodeType (UI-created) and node.type (programmatic)
-            const nodeType = node.data.nodeType || node.type;
-            const executor = this.nodeRegistry.getExecutor(nodeType);
+    try {
+      // Support both node.data.nodeType (UI-created) and node.type (programmatic)
+      const nodeType = node.data.nodeType || node.type;
+      const executor = this.nodeRegistry.getExecutor(nodeType);
 
-            let result: any;
-            let nextNodes: string[] = [];
+      let result: any;
+      let nextNodes: string[] = [];
 
-            if (executor) {
-                const executionResult = await executor.execute(node, context, execution, workflow);
-                if (!executionResult.success) {
-                    throw new Error(executionResult.error || 'Node execution failed');
-                }
-                result = executionResult.output;
-
-                // If executor returns specific next nodes (e.g. ConditionNode), use them
-                if (executionResult.nextNodes) {
-                    nextNodes = executionResult.nextNodes;
-                }
-            } else {
-                console.warn(`No executor found for type: ${nodeType}`);
-                result = { message: `Node type ${nodeType} skipped (no executor)` };
-            }
-
-            nodeExecution.status = 'completed';
-            (nodeExecution as any).result = result;
-
-            execution.executedNodes.push(nodeExecution as any);
-            await this.executionsRepository.save(execution);
-
-            // Determine next nodes if not already decided by executor
-            if (nextNodes.length === 0) {
-                const nextEdges = workflow.edges.filter((e) => e.source === node.id);
-                nextNodes = nextEdges.map(e => e.target);
-            }
-
-            // Execute next nodes
-            for (const nextNodeId of nextNodes) {
-                const nextNode = workflow.nodes.find((n) => n.id === nextNodeId);
-                if (nextNode) {
-                    await this.executeNode(execution, workflow, nextNode, context);
-                }
-            }
-        } catch (error: any) {
-            nodeExecution.status = 'failed';
-            (nodeExecution as any).error = error.message;
-            execution.executedNodes.push(nodeExecution as any);
-            await this.executionsRepository.save(execution);
-            throw error;
+      if (executor) {
+        const executionResult = await executor.execute(
+          node,
+          context,
+          execution,
+          workflow,
+        );
+        if (!executionResult.success) {
+          throw new Error(executionResult.error || 'Node execution failed');
         }
-    }
+        result = executionResult.output;
 
-    async getExecutions(workflowId?: string): Promise<WorkflowExecution[]> {
-        if (workflowId) {
-            return this.executionsRepository.find({
-                where: { workflowId },
-                order: { createdAt: 'DESC' },
-            });
+        // If executor returns specific next nodes (e.g. ConditionNode), use them
+        if (executionResult.nextNodes) {
+          nextNodes = executionResult.nextNodes;
         }
-        return this.executionsRepository.find({ order: { createdAt: 'DESC' } });
-    }
+      } else {
+        console.warn(`No executor found for type: ${nodeType}`);
+        result = { message: `Node type ${nodeType} skipped (no executor)` };
+      }
 
-    async getExecutionById(id: string): Promise<WorkflowExecution | null> {
-        return this.executionsRepository.findOne({ where: { id } });
-    }
+      nodeExecution.status = 'completed';
+      (nodeExecution as any).result = result;
 
-    async cancelExecution(id: string): Promise<WorkflowExecution> {
-        const execution = await this.getExecutionById(id);
-        if (!execution) {
-            throw new Error('Execution not found');
+      execution.executedNodes.push(nodeExecution as any);
+      await this.executionsRepository.save(execution);
+
+      // Determine next nodes if not already decided by executor
+      if (nextNodes.length === 0) {
+        const nextEdges = workflow.edges.filter((e) => e.source === node.id);
+        nextNodes = nextEdges.map((e) => e.target);
+      }
+
+      // Execute next nodes
+      for (const nextNodeId of nextNodes) {
+        const nextNode = workflow.nodes.find((n) => n.id === nextNodeId);
+        if (nextNode) {
+          await this.executeNode(execution, workflow, nextNode, context);
         }
-
-        execution.status = ExecutionStatus.CANCELLED;
-        execution.completedAt = new Date();
-        return this.executionsRepository.save(execution);
+      }
+    } catch (error: any) {
+      nodeExecution.status = 'failed';
+      (nodeExecution as any).error = error.message;
+      execution.executedNodes.push(nodeExecution as any);
+      await this.executionsRepository.save(execution);
+      throw error;
     }
+  }
+
+  async getExecutions(workflowId?: string): Promise<WorkflowExecution[]> {
+    if (workflowId) {
+      return this.executionsRepository.find({
+        where: { workflowId },
+        order: { createdAt: 'DESC' },
+      });
+    }
+    return this.executionsRepository.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async getExecutionById(id: string): Promise<WorkflowExecution | null> {
+    return this.executionsRepository.findOne({ where: { id } });
+  }
+
+  async cancelExecution(id: string): Promise<WorkflowExecution> {
+    const execution = await this.getExecutionById(id);
+    if (!execution) {
+      throw new Error('Execution not found');
+    }
+
+    execution.status = ExecutionStatus.CANCELLED;
+    execution.completedAt = new Date();
+    return this.executionsRepository.save(execution);
+  }
 }

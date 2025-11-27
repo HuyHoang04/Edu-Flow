@@ -1,6 +1,96 @@
 # Project Status & Next Steps
 
-## 1. Current Status (UPDATED: 2025-11-26 23:17)
+## 1. Current Status (UPDATED: 2025-11-27 17:23)
+
+### ✅ COMPLETED FEATURES
+- **Attendance Automation (NEW)**:
+    - [x] **Backend**: `AttendanceSession` & `Notification` entities/services
+    - [x] **Workflow Nodes**: `Create Attendance Code` & `Web Notification`
+    - [x] **Teacher Dashboard**: "Create Session" button with Popup Code
+    - [x] **Student Check-in**: `/attendance/join/[code]` page with validation
+    - [x] **Core Logic**: Unique code generation, expiry check, duplicate check
+
+- **Frontend**:
+    - [x] Basic Dashboard Layout (Sidebar, Header)
+    - [x] Workflow Builder UI (React Flow, Custom Nodes, Drag & Drop)
+    - [x] Node Registry (Frontend) with 15+ node types defined
+    - [x] Workflow Service for API communication
+    - [x] Save/Load/Execute Workflow functionality
+    - [x] Students Page (Fetch, Display, Excel Import, Manual Creation, **Class Assignment**)
+    - [x] Classes Page (**Create, Read, Display with student counts**)
+    - [x] Questions Page (CRUD operations, **Fixed syntax error**)
+    - [x] Exams Page (CRUD operations)
+    - [x] **Workflows Page - Real data from API**
+
+- **Backend**:
+    - [x] Workflow API (CRUD, Execute)
+    - [x] **Node Registry Architecture**: Scalable registry-based pattern
+    - [x] **15 Node Executors Implemented** (Added Attendance & Notification)
+    - [x] **Template Support (Partial)**:
+        - [x] `isTemplate` and `category` fields in entity
+        - [x] Template endpoints in controller
+        - [ ] Service methods pending
+
+- **AI Integration**:
+    - [x] Python FastAPI Service (OpenAI, Gemini, Phi-3)
+    - [x] `/generate` and `/grade` endpoints
+    - [x] NestJS AI executors
+    - [x] Using: **Google Gemini (free tier)**
+
+- **Data Management**:
+    - [x] Excel Import for Students
+    - [x] Manual Student Creation with Class Selection
+    - [x] **Class Creation**
+    - [x] Question Bank CRUD
+    - [x] Exam Management CRUD
+
+### 🔨 IN PROGRESS
+- **Workflow Templates** (50% done)
+- **AI Grading** (Integration pending)
+
+## 2. Next Steps (Priority Order)
+
+### A. Attendance System Testing & Polish ⭐ (NEXT SESSION)
+1.  **End-to-End Testing**:
+    - Verify Teacher creates session -> Student joins -> Record saved.
+    - Verify "Web Notification" node sends alert to teacher.
+2.  **Teacher Notification View**:
+    - Create UI to view history of notifications (Bell icon).
+    - Implement "Mark as Read".
+
+### B. AI Grading Completion
+1.  **Gemini Integration**:
+    - Fix JSON parsing issues in `AI Service`.
+    - Implement `AIGradeExecutor` in NestJS to call Python service.
+2.  **Grading UI**:
+    - Show AI feedback to students/teachers.
+
+### C. Workflow Templates (Resume)
+1.  **Backend**: Implement `saveAsTemplate` and `useTemplate`.
+2.  **Frontend**: Create Templates Gallery page.
+
+## 3. Known Issues / Notes
+- Backend auto-restarts on file changes ✅
+- Authentication working perfectly ✅
+- AI Service: Gemini free tier (60 req/min) ✅
+- **Attendance**: Core logic done, needs field testing.
+
+## 4. Services Status
+✅ **Frontend** (Next.js): `http://localhost:3000`
+✅ **Backend** (NestJS): `http://localhost:4000`
+✅ **AI Service** (FastAPI): `http://localhost:8000`
+✅ **Database**: PostgreSQL + Redis
+
+## 5. Testing
+- [x] Excel Import
+- [x] Question & Exam APIs
+- [x] AI Integration
+- [x] New Nodes (Attendance, Notification)
+- [ ] End-to-End Attendance Flow
+
+## 6. Recommended Next Action
+👉 **Test Attendance Flow** - Run a full cycle test to ensure stability before moving to AI Grading.
+
 
 ### ✅ COMPLETED FEATURES
 - **Frontend**:

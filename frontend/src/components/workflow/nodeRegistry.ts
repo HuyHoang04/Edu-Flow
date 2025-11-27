@@ -299,6 +299,41 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
         inputs: [{ id: "in", type: "target", label: "In" }],
         outputs: [{ id: "summary", type: "source", label: "Summary" }],
     },
+
+    // --- ATTENDANCE ---
+    "create-attendance-session": {
+        type: "create-attendance-session",
+        label: "Create Attendance Code",
+        icon: Clock,
+        category: "Action",
+        description: "Generates a unique check-in code.",
+        fields: [
+            { name: "classId", label: "Class", type: "select", dynamicOptions: "classes" },
+            { name: "timeout", label: "Timeout (minutes)", type: "number", defaultValue: 5 },
+        ],
+        inputs: [{ id: "in", type: "target", label: "In" }],
+        outputs: [{ id: "out", type: "source", label: "Created" }],
+        outputVariables: [
+            { name: "sessionCode", label: "Unique Code", description: "The 4-6 digit check-in code" },
+            { name: "expiryTime", label: "Expiry Time", description: "When the code expires" },
+            { name: "checkinUrl", label: "Check-in URL", description: "Direct link for students" }
+        ]
+    },
+    "send-notification": {
+        type: "send-notification",
+        label: "Web Notification",
+        icon: MessageSquare,
+        category: "Action",
+        description: "Sends a web notification.",
+        fields: [
+            { name: "recipientId", label: "Recipient ID", type: "text", placeholder: "User ID or {{teacherId}}" },
+            { name: "title", label: "Title", type: "text" },
+            { name: "message", label: "Message", type: "textarea" },
+            { name: "type", label: "Type", type: "select", options: [{ label: "Info", value: "info" }, { label: "Success", value: "success" }, { label: "Warning", value: "warning" }] }
+        ],
+        inputs: [{ id: "in", type: "target", label: "In" }],
+        outputs: [{ id: "out", type: "source", label: "Sent" }],
+    },
 };
 
 export const NODE_CATEGORIES = [

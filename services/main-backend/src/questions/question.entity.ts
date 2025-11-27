@@ -1,73 +1,73 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 export enum QuestionType {
-    MULTIPLE_CHOICE = 'multiple_choice',
-    TRUE_FALSE = 'true_false',
-    SHORT_ANSWER = 'short_answer',
-    ESSAY = 'essay',
+  MULTIPLE_CHOICE = 'multiple_choice',
+  TRUE_FALSE = 'true_false',
+  SHORT_ANSWER = 'short_answer',
+  ESSAY = 'essay',
 }
 
 export enum QuestionDifficulty {
-    EASY = 'easy',
-    MEDIUM = 'medium',
-    HARD = 'hard',
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
 }
 
 @Entity('questions')
 export class Question {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column({ type: 'text' })
-    content: string;
+  @Column({ type: 'text' })
+  content: string;
 
-    @Column({
-        type: 'enum',
-        enum: QuestionType,
-        default: QuestionType.MULTIPLE_CHOICE,
-    })
-    type: QuestionType;
+  @Column({
+    type: 'enum',
+    enum: QuestionType,
+    default: QuestionType.MULTIPLE_CHOICE,
+  })
+  type: QuestionType;
 
-    @Column({ type: 'jsonb', nullable: true })
-    options: string[]; // For multiple choice
+  @Column({ type: 'jsonb', nullable: true })
+  options: string[]; // For multiple choice
 
-    @Column({ type: 'text' })
-    correctAnswer: string;
+  @Column({ type: 'text' })
+  correctAnswer: string;
 
-    @Column({ type: 'decimal', precision: 5, scale: 2, default: 1 })
-    points: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 1 })
+  points: number;
 
-    @Column({
-        type: 'enum',
-        enum: QuestionDifficulty,
-        default: QuestionDifficulty.MEDIUM,
-    })
-    difficulty: QuestionDifficulty;
+  @Column({
+    type: 'enum',
+    enum: QuestionDifficulty,
+    default: QuestionDifficulty.MEDIUM,
+  })
+  difficulty: QuestionDifficulty;
 
-    @Column()
-    subject: string;
+  @Column()
+  subject: string;
 
-    @Column({ nullable: true })
-    topic: string;
+  @Column({ nullable: true })
+  topic: string;
 
-    @Column({ type: 'jsonb', default: [] })
-    tags: string[];
+  @Column({ type: 'jsonb', default: [] })
+  tags: string[];
 
-    @Column({ type: 'text', nullable: true })
-    explanation: string;
+  @Column({ type: 'text', nullable: true })
+  explanation: string;
 
-    @Column()
-    createdBy: string; // User ID
+  @Column()
+  createdBy: string; // User ID
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

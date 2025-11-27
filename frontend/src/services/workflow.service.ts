@@ -58,5 +58,26 @@ export const WorkflowService = {
     getExecutions: async (id: string) => {
         const response = await api.get(`/workflows/${id}/executions`);
         return response.data;
+    },
+
+    // Templates
+    getAllTemplates: async () => {
+        const response = await api.get<Workflow[]>("/workflows/templates/all");
+        return response.data;
+    },
+
+    saveAsTemplate: async (id: string, data: { name: string; description?: string; category?: string }) => {
+        const response = await api.post<Workflow>(`/workflows/${id}/save-as-template`, data);
+        return response.data;
+    },
+
+    useTemplate: async (templateId: string, data: { name: string }) => {
+        const response = await api.post<Workflow>(`/workflows/templates/${templateId}/use`, data);
+        return response.data;
+    },
+
+    generateAi: async (prompt: string) => {
+        const response = await api.post<any>('/workflows/generate-ai', { prompt });
+        return response.data;
     }
 };

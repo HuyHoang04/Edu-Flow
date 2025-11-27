@@ -15,6 +15,7 @@ import { EmailsModule } from './emails/emails.module';
 import { FormsModule } from './forms/forms.module';
 import { ReportsModule } from './reports/reports.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { LecturesModule } from './lectures/lectures.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -75,8 +76,9 @@ import { AppService } from './app.service';
     FormsModule,
     ReportsModule,
     WorkflowsModule,
+    LecturesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
