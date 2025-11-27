@@ -11,6 +11,7 @@ interface GradingResult {
     maxScore: number;
     isCorrect: boolean;
     needsManualReview: boolean;
+    feedback?: string;
 }
 
 @Injectable()
@@ -36,6 +37,7 @@ export class GradingService {
 
             let score = 0;
             let needsManualReview = false;
+            let feedback = '';
 
             switch (question.type) {
                 case QuestionType.MULTIPLE_CHOICE:
@@ -62,7 +64,7 @@ export class GradingService {
                     break;
 
                 case QuestionType.ESSAY:
-                    // Requires manual grading
+                    // Requires manual grading (or AI via workflow)
                     needsManualReview = true;
                     break;
             }
@@ -73,6 +75,7 @@ export class GradingService {
                 maxScore: Number(question.points),
                 isCorrect: score === Number(question.points),
                 needsManualReview,
+                feedback,
             });
 
             if (!needsManualReview) {

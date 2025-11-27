@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Workflow } from './workflow.entity';
 import { WorkflowExecution, ExecutionStatus } from './workflow-execution.entity';
 import { NodeRegistryService } from './node-registry.service';
+import { ExamsService } from '../exams/exams.service';
 
 export interface CreateWorkflowDto {
     name: string;
@@ -34,6 +35,8 @@ export class WorkflowsService {
         @InjectRepository(WorkflowExecution)
         private executionsRepository: Repository<WorkflowExecution>,
         private nodeRegistry: NodeRegistryService,
+        @Inject(forwardRef(() => ExamsService))
+        private examsService: ExamsService,
     ) { }
 
     // Workflow CRUD
@@ -128,6 +131,23 @@ export class WorkflowsService {
         return this.workflowsRepository.save(workflow);
     }
 
+    async triggerWorkflowsByEvent(event: string, context: any): Promise<void> {
+        // Find all active workflows with this event trigger
+        // Note: This assumes trigger config is stored in JSONB and we might need a more robust query
+        // For now, we'll fetch all active workflows and filter in memory (not efficient for large scale but fine for MVP)
+        const activeWorkflows = await this.workflowsRepository.find({ where: { isActive: true } });
+
+        const matchingWorkflows = activeWorkflows.filter(w =>
+            w.trigger?.type === 'event' && w.trigger?.config?.event === event
+        );
+
+        console.log(`[WorkflowsService] Found ${matchingWorkflows.length} workflows for event: ${event}`);
+
+        for (const workflow of matchingWorkflows) {
+            await this.executeWorkflow(workflow.id, 'event', context);
+        }
+    }
+
     // Workflow Execution
     async executeWorkflow(
         workflowId: string,
@@ -179,13 +199,28 @@ export class WorkflowsService {
         try {
             console.log('Workflow Nodes:', JSON.stringify(workflow.nodes, null, 2));
 
-            // Find start node
+            // Find start node - prioritize explicit startNodeId
             let startNode;
-            if (execution.triggeredBy === 'manual') {
-                startNode = workflow.nodes.find(n => n.data.nodeType === 'manual-trigger');
-            } else {
-                // Default to first node or specific trigger logic
-                startNode = workflow.nodes.find(n => n.type === 'trigger' || n.data.category === 'Trigger');
+
+            // First, check if workflow has explicit startNodeId
+            if ((workflow as any).startNodeId) {
+                startNode = workflow.nodes.find(n => n.id === (workflow as any).startNodeId);
+                console.log(`[Workflow] Using explicit startNodeId: ${(workflow as any).startNodeId}`);
+            }
+
+            // Fallback to heuristic detection
+            if (!startNode) {
+                if (execution.triggeredBy === 'manual') {
+                    startNode = workflow.nodes.find(n => n.data.nodeType === 'manual-trigger');
+                } else {
+                    // For event-triggered workflows, use first node or trigger node
+                    startNode = workflow.nodes.find(n => n.type === 'trigger' || n.data.category === 'Trigger');
+                    // If no trigger found, use first node
+                    if (!startNode && workflow.nodes.length > 0) {
+                        startNode = workflow.nodes[0];
+                        console.log(`[Workflow] No trigger found, using first node: ${startNode.id}`);
+                    }
+                }
             }
 
             if (!startNode) {
@@ -220,7 +255,8 @@ export class WorkflowsService {
         };
 
         try {
-            const nodeType = node.data.nodeType;
+            // Support both node.data.nodeType (UI-created) and node.type (programmatic)
+            const nodeType = node.data.nodeType || node.type;
             const executor = this.nodeRegistry.getExecutor(nodeType);
 
             let result: any;

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Exam } from './exam.entity';
 import { ExamAttempt } from './exam-attempt.entity';
@@ -10,13 +10,16 @@ import { GradingService } from './grading.service';
 import { QuestionsModule } from '../questions/questions.module';
 import { AuthModule } from '../auth/auth.module';
 import { StudentsModule } from '../students/students.module';
+import { WorkflowsModule } from '../workflows/workflows.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Exam, ExamAttempt, ExamResult]),
         QuestionsModule,
         AuthModule,
+        AuthModule,
         StudentsModule,
+        forwardRef(() => WorkflowsModule),
     ],
     controllers: [ExamsController],
     providers: [ExamsService, GradingService],

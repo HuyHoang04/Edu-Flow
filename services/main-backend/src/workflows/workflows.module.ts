@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Workflow } from './workflow.entity';
 import { WorkflowExecution } from './workflow-execution.entity';
@@ -36,7 +36,7 @@ import { ReportsModule } from '../reports/reports.module';
         EmailsModule,
         StudentsModule,
         StudentsModule,
-        ExamsModule,
+        forwardRef(() => ExamsModule),
         QuestionsModule,
         FormsModule,
         ReportsModule,

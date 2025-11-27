@@ -120,8 +120,6 @@ export class ExamsService {
     }
 
     async gradeExam(attemptId: string): Promise<ExamResult> {
-        console.log('[ExamsService] gradeExam called for attempt:', attemptId);
-
         const attempt = await this.attemptsRepository.findOne({
             where: { id: attemptId },
         });
@@ -158,140 +156,93 @@ export class ExamsService {
             studentId: attempt.studentId,
             examId: exam.id,
             score: gradingResult.autoGradeScore,
-            percentage,
-            passed: gradingResult.autoGradeScore >= Number(exam.passingScore),
-        });
-
-        const savedResult = await this.resultsRepository.save(result);
-        console.log('[ExamsService] Result saved:', savedResult.id);
-
-        // Prepare context with actual student answers
-        const answersMap = new Map(attempt.answers.map(a => [a.questionId, a.answer]));
-        const questionsWithAnswers = questions.map(q => ({
-            questionId: q.id,
-            questionContent: q.content,
-            questionType: q.type,
-            studentAnswer: answersMap.get(q.id) || '',
-            rubric: q.correctAnswer,
-            maxScore: q.points
-        }));
-
-        const workflowContext = {
-            attemptId: attempt.id,
-            examId: exam.id,
-            studentId: attempt.studentId,
-            resultId: savedResult.id,
-            currentScore: savedResult.score,
-            questions: questionsWithAnswers,
-            questionContent: questionsWithAnswers.find(q => q.questionType === 'essay')?.studentAnswer || '',
-            rubric: questionsWithAnswers.find(q => q.questionType === 'essay')?.rubric || '',
-            maxScore: questionsWithAnswers.find(q => q.questionType === 'essay')?.maxScore || 0,
-        };
-
-        console.log('[ExamsService] Triggering workflow with context:', JSON.stringify(workflowContext, null, 2));
-
-        try {
-            await this.workflowsService.triggerWorkflowsByEvent('EXAM_SUBMITTED', workflowContext);
-            console.log('[ExamsService] Workflow trigger completed');
-        } catch (error) {
-            console.error('[ExamsService] Workflow trigger error:', error);
+            return this.resultsRepository.find({ where: { studentId } });
         }
-
-        return savedResult;
-    }
-
-    async getExamResults(examId: string): Promise<ExamResult[]> {
-        return this.resultsRepository.find({ where: { examId } });
-    }
-
-    async getStudentResults(studentId: string): Promise<ExamResult[]> {
-        return this.resultsRepository.find({ where: { studentId } });
-    }
 
     async getExamStats(examId: string) {
-        const results = await this.getExamResults(examId);
-        const total = results.length;
-        const passed = results.filter((r) => r.passed).length;
-        const avgScore =
-            total > 0
-                ? results.reduce((sum, r) => sum + Number(r.score), 0) / total
-                : 0;
-
-        return {
-            total,
-            passed,
-            failed: total - passed,
-            passRate: total > 0 ? (passed / total) * 100 : 0,
-            averageScore: avgScore,
-            averagePercentage:
+            const results = await this.getExamResults(examId);
+            const total = results.length;
+            const passed = results.filter((r) => r.passed).length;
+            const avgScore =
                 total > 0
-                    ? results.reduce((sum, r) => sum + Number(r.percentage), 0) / total
-                    : 0,
-        };
-    }
+                    ? results.reduce((sum, r) => sum + Number(r.score), 0) / total
+                    : 0;
 
-    async updateResult(resultId: string, updateData: Partial<ExamResult>): Promise<ExamResult> {
-        await this.resultsRepository.update(resultId, updateData);
-        const result = await this.resultsRepository.findOne({ where: { id: resultId } });
-        if (!result) {
-            throw new Error('Exam result not found');
+            return {
+                total,
+                passed,
+                failed: total - passed,
+                passRate: total > 0 ? (passed / total) * 100 : 0,
+                averageScore: avgScore,
+                averagePercentage:
+                    total > 0
+                        ? results.reduce((sum, r) => sum + Number(r.percentage), 0) / total
+                        : 0,
+            };
         }
+
+    async updateResult(resultId: string, updateData: Partial<ExamResult>): Promise < ExamResult > {
+            await this.resultsRepository.update(resultId, updateData);
+            const result = await this.resultsRepository.findOne({ where: { id: resultId } });
+            if(!result) {
+                throw new Error('Exam result not found');
+            }
         return result;
-    }
-
-    async getExamForTaking(examId: string, userId: string): Promise<any> {
-        const exam = await this.findById(examId);
-        if (!exam) {
-            throw new Error('Exam not found');
         }
+
+    async getExamForTaking(examId: string, userId: string): Promise < any > {
+            const exam = await this.findById(examId);
+            if(!exam) {
+                throw new Error('Exam not found');
+            }
 
         // TODO: Check if user is enrolled in the class
         // TODO: Check if exam is active (time window)
 
         // Get questions with content
         const questionIds = exam.questions.map((q) => q.questionId);
-        const questions = await this.questionsService.findByIds(questionIds);
+            const questions = await this.questionsService.findByIds(questionIds);
 
-        // Sanitize questions (remove correct answers)
-        const sanitizedQuestions = questions.map((q) => {
-            const { correctAnswer, explanation, ...rest } = q;
-            return rest;
-        });
+            // Sanitize questions (remove correct answers)
+            const sanitizedQuestions = questions.map((q) => {
+                const { correctAnswer, explanation, ...rest } = q;
+                return rest;
+            });
 
-        // Sort questions based on exam order
-        const orderedQuestions = exam.questions
-            .map((eq) => {
-                const question = sanitizedQuestions.find((q) => q.id === eq.questionId);
-                if (question) {
-                    return {
-                        ...question,
-                        points: eq.points || question.points, // Override points if specified in exam
-                    };
-                }
-                return null;
-            })
-            .filter(Boolean);
+            // Sort questions based on exam order
+            const orderedQuestions = exam.questions
+                .map((eq) => {
+                    const question = sanitizedQuestions.find((q) => q.id === eq.questionId);
+                    if (question) {
+                        return {
+                            ...question,
+                            points: eq.points || question.points, // Override points if specified in exam
+                        };
+                    }
+                    return null;
+                })
+                .filter(Boolean);
 
-        return {
-            ...exam,
-            questions: orderedQuestions,
-        };
-    }
+            return {
+                ...exam,
+                questions: orderedQuestions,
+            };
+        }
 
     async enterExam(examId: string, studentCode: string) {
-        const exam = await this.findById(examId);
-        if (!exam) {
-            throw new Error('Exam not found');
-        }
+            const exam = await this.findById(examId);
+            if(!exam) {
+                throw new Error('Exam not found');
+            }
 
         const student = await this.studentsService.findByCode(studentCode);
-        if (!student) {
-            throw new Error('Student not found');
-        }
+            if(!student) {
+                throw new Error('Student not found');
+            }
 
-        if (exam.classId && student.classId !== exam.classId) {
-            throw new Error('Student is not enrolled in the class for this exam');
-        }
+        if(exam.classId && student.classId !== exam.classId) {
+                throw new Error('Student is not enrolled in the class for this exam');
+    }
 
         return this.authService.loginStudent(student);
     }

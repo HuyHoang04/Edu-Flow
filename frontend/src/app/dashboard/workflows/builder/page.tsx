@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { useEffect, useState } from "react";
 import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
 import { NodePalette } from "@/components/workflow/NodePalette";
@@ -65,14 +63,23 @@ function WorkflowBuilderContent() {
         }
     };
 
-    const handleSave = async () => {
+    const handleSaveWorkflow = async () => {
+        if (!workflowName.trim()) {
+            alert("Please enter a workflow name");
+            return;
+        }
         setIsSaving(true);
         try {
+            // Auto-detect start node: find first node with no incoming edges
+            const nodesWithIncomingEdges = new Set(edges.map(e => e.target));
+            const startNode = nodes.find(n => !nodesWithIncomingEdges.has(n.id));
+
             const workflowData = {
                 name: workflowName,
                 nodes,
                 edges,
-                trigger: { type: 'manual' as const } // Default trigger
+                trigger: { type: 'manual' as const },
+                startNodeId: startNode?.id || (nodes.length > 0 ? nodes[0].id : undefined)
             };
 
             if (workflowId) {
@@ -123,19 +130,16 @@ function WorkflowBuilderContent() {
 
     const handleImportTemplate = async (templateId: string) => {
         try {
-            // Fetch full template details (though we might already have them in the list if getAll returns full objects)
-            // Assuming getAll returns full objects for now based on previous implementation
             const template = templates.find(t => t.id === templateId);
             if (!template) return;
 
-            // Generate unique prefix for imported nodes to avoid ID collisions
             const prefix = `imported_${Date.now()}_`;
 
             const newNodes = template.nodes.map((node: any) => ({
                 ...node,
                 id: `${prefix}${node.id}`,
                 position: {
-                    x: node.position.x + 50, // Offset slightly
+                    x: node.position.x + 50,
                     y: node.position.y + 50
                 },
                 selected: false
@@ -277,85 +281,84 @@ function WorkflowBuilderContent() {
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
-                                    <label htmlFor="name" className="text-sm font-medium">Tên Template</label>
+                                    <label htmlFor="template-name" className="text-sm font-medium">Tên Template</label>
                                     <input
-                                        id="name"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        id="template-name"
+                                        type="text"
                                         value={newTemplateName}
                                         onChange={(e) => setNewTemplateName(e.target.value)}
-                                        placeholder="Nhập tên template..."
+                                        placeholder="VD: Email Notification Flow"
+                                        className="rounded-md border px-3 py-2"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <label htmlFor="description" className="text-sm font-medium">Mô tả</label>
+                                    <label htmlFor="template-description" className="text-sm font-medium">Mô tả</label>
                                     <textarea
-                                        id="description"
-                                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        id="template-description"
                                         value={newTemplateDescription}
                                         onChange={(e) => setNewTemplateDescription(e.target.value)}
-                                        placeholder="Mô tả template..."
+                                        placeholder="Describe your template..."
+                                        className="rounded-md border px-3 py-2 min-h-[100px]"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <label htmlFor="category" className="text-sm font-medium">Danh mục</label>
+                                    <label htmlFor="template-category" className="text-sm font-medium">Danh mục</label>
                                     <select
-                                        id="category"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        id="template-category"
                                         value={newTemplateCategory}
                                         onChange={(e) => setNewTemplateCategory(e.target.value)}
+                                        className="rounded-md border px-3 py-2"
                                     >
                                         <option value="education">Education</option>
+                                        <option value="communication">Communication</option>
                                         <option value="automation">Automation</option>
-                                        <option value="notification">Notification</option>
-                                        <option value="grading">Grading</option>
-                                        <option value="other">Other</option>
+                                        <option value="reporting">Reporting</option>
                                     </select>
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => setIsSaveTemplateOpen(false)}
-                                    className="rounded-lg border px-4 py-2 hover:bg-muted"
+                                    className="rounded-md border px-4 py-2 hover:bg-muted"
                                 >
                                     Hủy
                                 </button>
                                 <button
                                     onClick={handleSaveAsTemplate}
-                                    disabled={isSavingTemplate || !newTemplateName}
-                                    className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                                    disabled={isSavingTemplate || !newTemplateName.trim()}
+                                    className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:opacity-90 disabled:opacity-50"
                                 >
-                                    {isSavingTemplate ? "Đang lưu..." : "Lưu Template"}
+                                    {isSavingTemplate && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    Lưu Template
                                 </button>
                             </div>
                         </DialogContent>
                     </Dialog>
 
-                    <button className="flex items-center gap-2 rounded-lg border px-4 py-2 hover:bg-muted">
-                        <Settings className="h-4 w-4" />
-                        Cài đặt
+                    <button
+                        onClick={handleSaveWorkflow}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                    >
+                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save
                     </button>
                     <button
                         onClick={handleExecute}
                         className="flex items-center gap-2 rounded-lg border px-4 py-2 hover:bg-muted"
                     >
                         <Play className="h-4 w-4" />
-                        Test
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                    >
-                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Lưu
+                        Execute
                     </button>
                 </div>
             </div>
 
-            {/* Builder */}
-            <div className="flex gap-4 flex-1 h-full">
-                <NodePalette />
-                <div className="flex-1 h-full">
+            {/* Main Content */}
+            <div className="flex gap-4 flex-1 overflow-hidden">
+                <div className="w-64 shrink-0">
+                    <NodePalette />
+                </div>
+                <div className="flex-1">
                     <WorkflowCanvas
                         nodes={nodes}
                         edges={edges}

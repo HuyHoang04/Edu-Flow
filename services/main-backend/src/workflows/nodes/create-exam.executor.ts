@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { NodeExecutor } from './node-executor.interface';
 import { ExamsService } from '../../exams/exams.service';
 import { QuestionsService } from '../../questions/questions.service';
@@ -6,6 +6,7 @@ import { QuestionsService } from '../../questions/questions.service';
 @Injectable()
 export class CreateExamNodeExecutor implements NodeExecutor {
     constructor(
+        @Inject(forwardRef(() => ExamsService))
         private examsService: ExamsService,
         private questionsService: QuestionsService
     ) { }

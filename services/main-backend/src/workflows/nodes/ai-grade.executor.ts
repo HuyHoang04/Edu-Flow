@@ -26,10 +26,12 @@ export class AIGradeExecutor implements NodeExecutor {
             // Replace context variables in rubric
             const processedRubric = this.replaceContextVariables(rubric, context);
 
+            console.log(`[AIGradeExecutor] Calling AI service at ${aiServiceUrl}/grade`);
+
             const response = await axios.post(`${aiServiceUrl}/grade`, {
                 submission: submission,
                 rubric: processedRubric,
-                max_score: maxScore
+                max_score: Number(maxScore)
             });
 
             // Store result in context
@@ -56,6 +58,7 @@ export class AIGradeExecutor implements NodeExecutor {
     }
 
     private replaceContextVariables(text: string, context: any): string {
+        if (!text) return "";
         return text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
             return context[key] !== undefined ? context[key] : match;
         });

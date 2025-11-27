@@ -145,7 +145,16 @@ Respond in JSON format:
         
         response = self.model.generate_content(prompt)
         import json
-        return json.loads(response.text)
+        import re
+        
+        # Clean up response text (remove markdown code blocks if present)
+        text = response.text.strip()
+        # Remove ```json and ``` markers
+        text = re.sub(r'^```json\s*', '', text)
+        text = re.sub(r'```\s*$', '', text)
+        text = text.strip()
+        
+        return json.loads(text)
 
 
 class Phi3Client:
