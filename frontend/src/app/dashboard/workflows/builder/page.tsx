@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
 import { NodePalette } from "@/components/workflow/NodePalette";
+import { NODE_REGISTRY } from "@/components/workflow/nodeRegistry";
 import { Save, Play, Settings, Loader2, Copy, Wand2, ArrowLeft, LayoutTemplate } from "lucide-react";
 import { ReactFlowProvider, useNodesState, useEdgesState, Edge } from "@xyflow/react";
 import { WorkflowService } from "@/services/workflow.service";
@@ -22,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { WorkflowConfigProvider } from "@/components/workflow/WorkflowConfigContext";
 
 const initialNodes: WorkflowNode[] = [
     {
@@ -43,11 +45,23 @@ function WorkflowBuilderContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [workflowName, setWorkflowName] = useState("New Workflow");
 
+    const [availableNodes, setAvailableNodes] = useState<any[]>([]);
+
     const searchParams = useSearchParams();
     const router = useRouter();
     const workflowId = searchParams.get("id");
 
+    const fetchNodesConfig = async () => {
+        try {
+            const nodes = await WorkflowService.getNodesConfig();
+            setAvailableNodes(nodes);
+        } catch (error) {
+            console.error("Failed to fetch node config:", error);
+        }
+    };
+
     useEffect(() => {
+        fetchNodesConfig();
         if (workflowId) {
             loadWorkflow(workflowId);
         }
@@ -210,7 +224,15 @@ function WorkflowBuilderContent() {
         if (!aiPrompt.trim()) return;
         setIsGenerating(true);
         try {
-            const result = await WorkflowService.generateAi(aiPrompt);
+            // Use fetched availableNodes for AI context
+            const nodesForAi = availableNodes.length > 0 ? availableNodes : Object.values(NODE_REGISTRY).map(node => ({
+                type: node.type,
+                category: node.category,
+                description: node.description,
+                fields: node.fields.map(f => ({ name: f.name, type: f.type, description: f.label }))
+            }));
+
+            const result = await WorkflowService.generateAi(aiPrompt, nodesForAi);
             if (result && result.nodes && result.edges) {
                 setNodes(result.nodes);
                 setEdges(result.edges);
@@ -230,206 +252,208 @@ function WorkflowBuilderContent() {
     }
 
     return (
-        <div className="space-y-4 h-full flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b pb-4 px-4 pt-4 bg-background">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div>
-                        <input
-                            type="text"
-                            value={workflowName}
-                            onChange={(e) => setWorkflowName(e.target.value)}
-                            className="text-lg font-bold bg-transparent border-none focus:outline-none focus:ring-0 p-0"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            {isSaving ? "Saving..." : "All changes saved"}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setShowAiAssistant(true)}>
-                        <Wand2 className="mr-2 h-4 w-4" />
-                        AI Assistant
-                    </Button>
-
-                    {/* Import Template Dialog */}
-                    <Dialog open={isTemplateOpen} onOpenChange={(open) => {
-                        setIsTemplateOpen(open);
-                        if (open) fetchTemplates();
-                    }}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <Copy className="mr-2 h-4 w-4" />
-                                Import Template
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle>Select Template</DialogTitle>
-                                <DialogDescription>
-                                    Choose a template to add to your current workflow.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                {loadingTemplates ? (
-                                    <div className="flex justify-center p-4">
-                                        <Loader2 className="h-6 w-6 animate-spin" />
-                                    </div>
-                                ) : templates.length === 0 ? (
-                                    <p className="text-center text-muted-foreground">No templates available.</p>
-                                ) : (
-                                    <div className="grid gap-4">
-                                        {templates.map((template) => (
-                                            <div key={template.id} className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50">
-                                                <div>
-                                                    <h4 className="font-semibold">{template.name}</h4>
-                                                    <p className="text-sm text-muted-foreground">{template.description || "No description"}</p>
-                                                    <div className="text-xs text-muted-foreground mt-1">
-                                                        {template.nodes?.length || 0} nodes • {template.category || "Uncategorized"}
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleImportTemplate(template.id)}
-                                                >
-                                                    Add
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-
-                    {/* Save as Template Dialog */}
-                    <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <LayoutTemplate className="mr-2 h-4 w-4" />
-                                Save as Template
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Save as Template</DialogTitle>
-                                <DialogDescription>
-                                    Save this workflow as a reusable template.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="template-name">Template Name</Label>
-                                    <Input
-                                        id="template-name"
-                                        value={newTemplateName}
-                                        onChange={(e) => setNewTemplateName(e.target.value)}
-                                        placeholder="e.g., Exam Approval Process"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="template-description">Description</Label>
-                                    <Textarea
-                                        id="template-description"
-                                        value={newTemplateDescription}
-                                        onChange={(e) => setNewTemplateDescription(e.target.value)}
-                                        placeholder="Describe your template..."
-                                        className="min-h-[100px]"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="template-category">Category</Label>
-                                    <Input
-                                        id="template-category"
-                                        value={newTemplateCategory}
-                                        onChange={(e) => setNewTemplateCategory(e.target.value)}
-                                        placeholder="e.g., Education"
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsSaveTemplateOpen(false)}>Cancel</Button>
-                                <Button
-                                    onClick={handleSaveAsTemplate}
-                                    disabled={isSavingTemplate || !newTemplateName.trim()}
-                                >
-                                    {isSavingTemplate && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Save Template
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-
-                    <Button onClick={handleSaveWorkflow} disabled={isSaving} size="sm">
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save
-                    </Button>
-                    <Button variant="outline" onClick={handleExecute} size="sm">
-                        <Play className="mr-2 h-4 w-4" />
-                        Execute
-                    </Button>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex gap-4 flex-1 overflow-hidden px-4 pb-4">
-                <div className="w-64 shrink-0">
-                    <NodePalette />
-                </div>
-                <div className="flex-1 border rounded-lg overflow-hidden bg-background">
-                    <WorkflowCanvas
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        setNodes={setNodes}
-                        setEdges={setEdges}
-                    />
-                </div>
-            </div>
-
-            {/* AI Assistant Dialog */}
-            <Dialog open={showAiAssistant} onOpenChange={setShowAiAssistant}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>AI Workflow Assistant</DialogTitle>
-                        <DialogDescription>
-                            Describe the workflow you want to build, and AI will create it for you.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Prompt</Label>
-                            <Textarea
-                                value={aiPrompt}
-                                onChange={(e) => setAiPrompt(e.target.value)}
-                                placeholder="e.g., Send an email to the student when they submit an exam, then wait 2 days and send a follow-up."
-                                className="min-h-[100px]"
+        <WorkflowConfigProvider availableNodes={availableNodes}>
+            <div className="space-y-4 h-full flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b pb-4 px-4 pt-4 bg-background">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div>
+                            <input
+                                type="text"
+                                value={workflowName}
+                                onChange={(e) => setWorkflowName(e.target.value)}
+                                className="text-lg font-bold bg-transparent border-none focus:outline-none focus:ring-0 p-0"
                             />
+                            <p className="text-xs text-muted-foreground">
+                                {isSaving ? "Saving..." : "All changes saved"}
+                            </p>
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAiAssistant(false)}>Cancel</Button>
-                        <Button onClick={handleAiGenerate} disabled={isGenerating}>
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Wand2 className="mr-2 h-4 w-4" />
-                                    Generate
-                                </>
-                            )}
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setShowAiAssistant(true)}>
+                            <Wand2 className="mr-2 h-4 w-4" />
+                            AI Assistant
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+
+                        {/* Import Template Dialog */}
+                        <Dialog open={isTemplateOpen} onOpenChange={(open) => {
+                            setIsTemplateOpen(open);
+                            if (open) fetchTemplates();
+                        }}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Import Template
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle>Select Template</DialogTitle>
+                                    <DialogDescription>
+                                        Choose a template to add to your current workflow.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    {loadingTemplates ? (
+                                        <div className="flex justify-center p-4">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                        </div>
+                                    ) : templates.length === 0 ? (
+                                        <p className="text-center text-muted-foreground">No templates available.</p>
+                                    ) : (
+                                        <div className="grid gap-4">
+                                            {templates.map((template) => (
+                                                <div key={template.id} className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50">
+                                                    <div>
+                                                        <h4 className="font-semibold">{template.name}</h4>
+                                                        <p className="text-sm text-muted-foreground">{template.description || "No description"}</p>
+                                                        <div className="text-xs text-muted-foreground mt-1">
+                                                            {template.nodes?.length || 0} nodes • {template.category || "Uncategorized"}
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleImportTemplate(template.id)}
+                                                    >
+                                                        Add
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Save as Template Dialog */}
+                        <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <LayoutTemplate className="mr-2 h-4 w-4" />
+                                    Save as Template
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>Save as Template</DialogTitle>
+                                    <DialogDescription>
+                                        Save this workflow as a reusable template.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="template-name">Template Name</Label>
+                                        <Input
+                                            id="template-name"
+                                            value={newTemplateName}
+                                            onChange={(e) => setNewTemplateName(e.target.value)}
+                                            placeholder="e.g., Exam Approval Process"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="template-description">Description</Label>
+                                        <Textarea
+                                            id="template-description"
+                                            value={newTemplateDescription}
+                                            onChange={(e) => setNewTemplateDescription(e.target.value)}
+                                            placeholder="Describe your template..."
+                                            className="min-h-[100px]"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="template-category">Category</Label>
+                                        <Input
+                                            id="template-category"
+                                            value={newTemplateCategory}
+                                            onChange={(e) => setNewTemplateCategory(e.target.value)}
+                                            placeholder="e.g., Education"
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setIsSaveTemplateOpen(false)}>Cancel</Button>
+                                    <Button
+                                        onClick={handleSaveAsTemplate}
+                                        disabled={isSavingTemplate || !newTemplateName.trim()}
+                                    >
+                                        {isSavingTemplate && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Save Template
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
+                        <Button onClick={handleSaveWorkflow} disabled={isSaving} size="sm">
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            Save
+                        </Button>
+                        <Button variant="outline" onClick={handleExecute} size="sm">
+                            <Play className="mr-2 h-4 w-4" />
+                            Execute
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Main Content */}
+                <div className="flex gap-4 flex-1 overflow-hidden px-4 pb-4">
+                    <div className="w-64 shrink-0">
+                        <NodePalette availableNodes={availableNodes.length > 0 ? availableNodes : undefined} />
+                    </div>
+                    <div className="flex-1 border rounded-lg overflow-hidden bg-background">
+                        <WorkflowCanvas
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            setNodes={setNodes}
+                            setEdges={setEdges}
+                        />
+                    </div>
+                </div>
+
+                {/* AI Assistant Dialog */}
+                <Dialog open={showAiAssistant} onOpenChange={setShowAiAssistant}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>AI Workflow Assistant</DialogTitle>
+                            <DialogDescription>
+                                Describe the workflow you want to build, and AI will create it for you.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Prompt</Label>
+                                <Textarea
+                                    value={aiPrompt}
+                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    placeholder="e.g., Send an email to the student when they submit an exam, then wait 2 days and send a follow-up."
+                                    className="min-h-[100px]"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowAiAssistant(false)}>Cancel</Button>
+                            <Button onClick={handleAiGenerate} disabled={isGenerating}>
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Wand2 className="mr-2 h-4 w-4" />
+                                        Generate
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        </WorkflowConfigProvider>
     );
 }
 

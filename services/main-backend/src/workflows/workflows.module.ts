@@ -23,6 +23,9 @@ import { GetClassesNodeExecutor } from './nodes/get-classes.executor';
 import { GetExamResultsNodeExecutor } from './nodes/get-exam-results.executor';
 import { FormNodeExecutor } from './nodes/form.executor';
 import { ReportNodeExecutor } from './nodes/report.executor';
+import { ExamSubmissionTriggerExecutor } from './nodes/exam-submission-trigger.executor';
+import { ScheduleTriggerExecutor } from './nodes/schedule-trigger.executor';
+import { ClassScheduleTriggerExecutor } from './nodes/class-schedule-trigger.executor';
 import { WorkflowSchedulerService } from './workflow-scheduler.service';
 import { Class } from '../classes/class.entity';
 import { ExamResult } from '../exams/exam-result.entity';
@@ -38,7 +41,6 @@ import { SendNotificationExecutor } from './nodes/send-notification.executor';
   imports: [
     TypeOrmModule.forFeature([Workflow, WorkflowExecution, Class, ExamResult]),
     EmailsModule,
-    StudentsModule,
     StudentsModule,
     forwardRef(() => ExamsModule),
     QuestionsModule,
@@ -69,7 +71,10 @@ import { SendNotificationExecutor } from './nodes/send-notification.executor';
     ReportNodeExecutor,
     CreateAttendanceSessionExecutor,
     SendNotificationExecutor,
+    ExamSubmissionTriggerExecutor,
+    ScheduleTriggerExecutor,
+    ClassScheduleTriggerExecutor,
   ],
   exports: [WorkflowsService],
 })
-export class WorkflowsModule {}
+export class WorkflowsModule { }

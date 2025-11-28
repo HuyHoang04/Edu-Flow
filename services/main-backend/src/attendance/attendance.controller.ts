@@ -53,6 +53,11 @@ export class AttendanceController {
     );
   }
 
+  @Get('stats/weekly/all')
+  async getWeeklyStats() {
+    return this.attendanceService.getWeeklyStats();
+  }
+
   @Post()
   async create(@Body() attendanceData: Partial<Attendance>) {
     return this.attendanceService.create(attendanceData);

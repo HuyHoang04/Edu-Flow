@@ -17,6 +17,7 @@ import {
     BarChart3,
     Workflow,
     Presentation,
+    Zap,
 } from "lucide-react";
 
 const menuItems = [
@@ -40,8 +41,9 @@ export function Sidebar() {
 
     return (
         <aside className="fixed left-0 top-0 h-screen w-64 border-r bg-card">
-            <div className="flex h-16 items-center border-b px-6">
-                <h1 className="text-xl font-bold">Teacher Automation</h1>
+            <div className="flex h-16 items-center gap-2 border-b px-6 text-primary">
+                <Zap className="h-6 w-6" />
+                <h1 className="text-xl font-bold">EAH</h1>
             </div>
 
             <nav className="space-y-1 p-4">

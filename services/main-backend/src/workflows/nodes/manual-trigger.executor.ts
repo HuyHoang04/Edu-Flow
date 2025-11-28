@@ -19,4 +19,15 @@ export class ManualTriggerExecutor extends BaseNodeExecutor {
       },
     };
   }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'manual-trigger',
+      label: 'Manual Trigger',
+      category: 'Trigger',
+      description: 'Starts the workflow manually.',
+      fields: [],
+      inputs: [],
+      outputs: [{ id: 'out', type: 'source', label: 'Start' }],
+    };
+  }
 }

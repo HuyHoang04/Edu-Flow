@@ -76,8 +76,13 @@ export const WorkflowService = {
         return response.data;
     },
 
-    generateAi: async (prompt: string) => {
-        const response = await api.post<any>('/workflows/generate-ai', { prompt });
+    generateAi: async (prompt: string, availableNodes?: any[]) => {
+        const response = await api.post<any>('/workflows/generate-ai', { prompt, availableNodes });
+        return response.data;
+    },
+
+    getNodesConfig: async () => {
+        const response = await api.get<any[]>('/workflows/nodes/config');
         return response.data;
     }
 };

@@ -2,8 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { Handle, Position, NodeProps, useReactFlow } from "@xyflow/react";
-import { NODE_REGISTRY } from "./nodeRegistry";
-import { WorkflowNode, NodeData } from "@/types/workflow";
+import { WorkflowNode, NodeData, NodeField, HandleDefinition } from "@/types/workflow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,12 +12,38 @@ import { ClassService } from "@/services/class.service";
 import { ExamService } from "@/services/exam.service";
 import { StudentService } from "@/services/student.service";
 import { VariablePicker } from "./VariablePicker";
+import { useWorkflowConfig } from "./WorkflowConfigContext";
+import {
+    Play, Mail, GitBranch, Clock, Users, BookOpen, GraduationCap,
+    FileText, Bell, Settings, Database, MessageSquare, Calendar
+} from "lucide-react";
+
+const ICON_MAP: Record<string, any> = {
+    "manual-trigger": Play,
+    "send-email": Mail,
+    "condition": GitBranch,
+    "delay": Clock,
+    "get-students": Users,
+    "get-classes": BookOpen,
+    "get-exam-results": FileText,
+    "create-exam": FileText,
+    "assign-grade": GraduationCap,
+    "update-student": Users,
+    "create-attendance-session": Calendar,
+    "send-notification": Bell,
+    "ai-generate": MessageSquare,
+    "loop": Settings,
+};
 
 const CustomNode = ({ id, data, selected }: NodeProps) => {
     const { updateNodeData } = useReactFlow();
+    const { getNodeDefinition } = useWorkflowConfig();
     const nodeData = data as NodeData;
     const nodeType = nodeData.nodeType;
-    const definition = NODE_REGISTRY[nodeType];
+
+    // Resolve definition: Data > Context > Fallback
+    const definition = nodeData.definition || getNodeDefinition(nodeType);
+
     const [dynamicOptions, setDynamicOptions] = useState<Record<string, { label: string; value: string }[]>>({});
 
     useEffect(() => {
@@ -35,21 +60,14 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
                             options = await ClassService.getAll();
                             newOptions[field.name] = options.map((c: any) => ({ label: c.name, value: c.id }));
                         } else if (field.dynamicOptions === "exams") {
-                            // Assuming we have a way to get all exams or filter by class if needed
-                            // For now, fetching all exams might be heavy, but let's assume a simple getAll or similar
-                            // If ExamService.getAll doesn't exist, we might need to fix it.
-                            // Let's check ExamService first or assume it exists.
-                            // If not, we'll fallback to empty.
                             try {
-                                options = await ExamService.getAll(); // Verify this exists
+                                options = await ExamService.getAll();
                                 newOptions[field.name] = options.map((e: any) => ({ label: e.title, value: e.id }));
                             } catch (e) {
                                 console.warn("Failed to load exams", e);
                             }
                         } else if (field.dynamicOptions === "students") {
-                            // Students usually need a classId context. 
-                            // If we can't get it, maybe we fetch all? Or just skip for now.
-                            // Let's skip global student fetch for now as it's too many.
+                            // Skip for now
                         }
                     } catch (error) {
                         console.error(`Failed to load options for ${field.name}`, error);
@@ -70,7 +88,11 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
         );
     }
 
-    const Icon = definition.icon;
+    // Resolve Icon
+    let Icon = definition.icon;
+    if (!Icon || typeof Icon === 'string') {
+        Icon = ICON_MAP[nodeType] || Settings;
+    }
 
     const handleChange = (name: string, value: any) => {
         updateNodeData(id, { [name]: value });
@@ -79,7 +101,7 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
     return (
         <Card className={`min-w-[250px] border-2 shadow-sm transition-all ${selected ? "border-primary ring-2 ring-primary/20" : "border-muted-foreground/20"}`}>
             {/* Inputs (Handles) */}
-            {definition.inputs.map((input) => (
+            {definition.inputs.map((input: HandleDefinition) => (
                 <Handle
                     key={input.id}
                     type="target"
@@ -108,7 +130,7 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
 
             {definition.fields.length > 0 && (
                 <CardContent className="space-y-3 p-3">
-                    {definition.fields.map((field) => (
+                    {definition.fields.map((field: NodeField) => (
                         <div key={field.name} className="space-y-1">
                             <Label className="text-[10px] uppercase text-muted-foreground">
                                 {field.label}
@@ -122,14 +144,14 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {(field.dynamicOptions ? dynamicOptions[field.name] : field.options)?.map((opt) => (
+                                        {(field.dynamicOptions ? dynamicOptions[field.name] : field.options)?.map((opt: { label: string; value: string }) => (
                                             <SelectItem key={opt.value} value={opt.value} className="text-xs">
                                                 {opt.label}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            ) : field.type === "textarea" ? (
+                            ) : field.type === "textarea" || field.type === "json" ? (
                                 <div className="relative">
                                     <Textarea
                                         placeholder={field.placeholder}
@@ -169,7 +191,7 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
             )}
 
             {/* Outputs (Handles) */}
-            {definition.outputs.map((output) => (
+            {definition.outputs.map((output: HandleDefinition) => (
                 <Handle
                     key={output.id}
                     type="source"

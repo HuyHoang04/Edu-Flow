@@ -12,6 +12,8 @@ export interface NodeExecutor {
     node: any,
     context: Record<string, any>,
     execution: WorkflowExecution,
-    workflow?: any, // Added workflow to access edges/nodes
+    workflow?: any,
   ): Promise<NodeExecutionResult>;
+
+  getDefinition(): import('../node-definition.interface').NodeDefinition;
 }

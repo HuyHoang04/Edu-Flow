@@ -174,4 +174,39 @@ export class AttendanceService {
       presentRate: total > 0 ? (present / total) * 100 : 0,
     };
   }
+  async getWeeklyStats() {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const records = await this.attendanceRepository.find({
+      where: {
+        date: Between(sevenDaysAgo, today),
+      },
+    });
+
+    const stats: { name: string; present: number; absent: number }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(sevenDaysAgo);
+      date.setDate(sevenDaysAgo.getDate() + i);
+      const dateString = date.toLocaleDateString('vi-VN', { weekday: 'short' }); // T2, T3...
+
+      // Compare dates ignoring time
+      const dayRecords = records.filter(r => {
+        const rDate = new Date(r.date);
+        return rDate.getDate() === date.getDate() &&
+          rDate.getMonth() === date.getMonth() &&
+          rDate.getFullYear() === date.getFullYear();
+      });
+
+      stats.push({
+        name: dateString,
+        present: dayRecords.filter(r => r.status === 'present').length,
+        absent: dayRecords.filter(r => r.status === 'absent').length,
+      });
+    }
+
+    return stats;
+  }
 }

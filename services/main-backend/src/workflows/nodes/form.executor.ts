@@ -5,7 +5,25 @@ import { FormFieldType } from '../../forms/form.entity';
 
 @Injectable()
 export class FormNodeExecutor implements NodeExecutor {
-  constructor(private formsService: FormsService) {}
+  constructor(private formsService: FormsService) { }
+
+  getDefinition(): import("../node-definition.interface").NodeDefinition {
+    return {
+      type: 'form',
+      label: 'Form',
+      category: 'Data',
+      description: 'Creates a new form.',
+      fields: [
+        { name: 'title', label: 'Title', type: 'text' },
+        { name: 'description', label: 'Description', type: 'text' },
+        { name: 'fields', label: 'Fields', type: 'json' },
+        { name: 'deadline', label: 'Deadline', type: 'date' },
+        { name: 'assignTo', label: 'Assign To', type: 'text' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'Form' }],
+    };
+  }
 
   async execute(
     node: any,
@@ -17,11 +35,7 @@ export class FormNodeExecutor implements NodeExecutor {
 
     const { title, description, fields, deadline, assignTo } = node.data;
 
-    // Resolve variables in title/description if needed (handled by BaseNodeExecutor if we extended it,
-    // but here we might need to do it manually or extend BaseNodeExecutor.
-    // For simplicity, let's assume simple string or pre-resolved data for now,
-    // or we can implement simple replacement here).
-
+    // Resolve variables in title/description if needed
     const resolvedTitle = this.resolveVariables(title || 'New Form', context);
     const resolvedDescription = this.resolveVariables(
       description || '',

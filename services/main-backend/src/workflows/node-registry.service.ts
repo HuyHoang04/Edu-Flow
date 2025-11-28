@@ -16,6 +16,11 @@ import { GetExamResultsNodeExecutor } from './nodes/get-exam-results.executor';
 
 import { CreateAttendanceSessionExecutor } from './nodes/create-attendance-session.executor';
 import { SendNotificationExecutor } from './nodes/send-notification.executor';
+import { FormNodeExecutor } from './nodes/form.executor';
+import { ReportNodeExecutor } from './nodes/report.executor';
+import { ExamSubmissionTriggerExecutor } from './nodes/exam-submission-trigger.executor';
+import { ScheduleTriggerExecutor } from './nodes/schedule-trigger.executor';
+import { ClassScheduleTriggerExecutor } from './nodes/class-schedule-trigger.executor';
 
 @Injectable()
 export class NodeRegistryService implements OnModuleInit {
@@ -37,7 +42,12 @@ export class NodeRegistryService implements OnModuleInit {
     private getExamResults: GetExamResultsNodeExecutor,
     private createAttendanceSession: CreateAttendanceSessionExecutor,
     private sendNotification: SendNotificationExecutor,
-  ) {}
+    private formNode: FormNodeExecutor,
+    private reportNode: ReportNodeExecutor,
+    private examSubmissionTrigger: ExamSubmissionTriggerExecutor,
+    private scheduleTrigger: ScheduleTriggerExecutor,
+    private classScheduleTrigger: ClassScheduleTriggerExecutor,
+  ) { }
 
   onModuleInit() {
     this.register('manual-trigger', this.manualTrigger);
@@ -55,6 +65,11 @@ export class NodeRegistryService implements OnModuleInit {
     this.register('get-exam-results', this.getExamResults);
     this.register('create-attendance-session', this.createAttendanceSession);
     this.register('send-notification', this.sendNotification);
+    this.register('form', this.formNode);
+    this.register('report', this.reportNode);
+    this.register('exam-submission-trigger', this.examSubmissionTrigger);
+    this.register('schedule-trigger', this.scheduleTrigger);
+    this.register('class-schedule-trigger', this.classScheduleTrigger);
   }
 
   register(type: string, executor: NodeExecutor) {
@@ -64,5 +79,11 @@ export class NodeRegistryService implements OnModuleInit {
 
   getExecutor(type: string): NodeExecutor | undefined {
     return this.executors.get(type);
+  }
+
+  getAllDefinitions(): import('./node-definition.interface').NodeDefinition[] {
+    return Array.from(this.executors.values()).map((executor) =>
+      executor.getDefinition(),
+    );
   }
 }

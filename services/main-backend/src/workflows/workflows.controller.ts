@@ -14,10 +14,12 @@ import { WorkflowsService } from './workflows.service';
 import type { CreateWorkflowDto } from './workflows.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+import { Public } from '../auth/decorators/public.decorator';
+
 @Controller('workflows')
 @UseGuards(JwtAuthGuard)
 export class WorkflowsController {
-  constructor(private workflowsService: WorkflowsService) {}
+  constructor(private workflowsService: WorkflowsService) { }
 
   @Get()
   async findAll(@Query('createdBy') createdBy?: string) {
@@ -127,7 +129,17 @@ export class WorkflowsController {
   }
 
   @Post('generate-ai')
-  async generateAi(@Body() body: { prompt: string }) {
-    return this.workflowsService.generateFromPrompt(body.prompt);
+  async generateAi(@Body() body: { prompt: string; availableNodes?: any[] }) {
+    return this.workflowsService.generateFromPrompt(
+      body.prompt,
+      body.availableNodes,
+    );
+  }
+
+  @Get('nodes/config')
+  getNodesConfig() {
+    return this.workflowsService.getNodeDefinitions();
   }
 }
+
+

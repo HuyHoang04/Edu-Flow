@@ -7,7 +7,7 @@ export class AssignGradeNodeExecutor implements NodeExecutor {
   constructor(
     @Inject(forwardRef(() => ExamsService))
     private examsService: ExamsService,
-  ) {}
+  ) { }
 
   private replaceContextVariables(str: string | number, context: any): any {
     if (typeof str !== 'string') return str;
@@ -64,6 +64,21 @@ export class AssignGradeNodeExecutor implements NodeExecutor {
       output: {
         updatedResult,
       },
+    };
+  }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'assign-grade',
+      label: 'Assign Grade',
+      category: 'Action',
+      description: 'Assigns a grade to a student.',
+      fields: [
+        { name: 'studentId', label: 'Student ID', type: 'text' },
+        { name: 'score', label: 'Score', type: 'number' },
+        { name: 'comments', label: 'Comments', type: 'textarea' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'Assigned' }],
     };
   }
 }

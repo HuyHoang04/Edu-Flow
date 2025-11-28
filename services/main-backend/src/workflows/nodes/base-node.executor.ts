@@ -8,6 +8,8 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
     execution: WorkflowExecution,
   ): Promise<NodeExecutionResult>;
 
+  abstract getDefinition(): import('../node-definition.interface').NodeDefinition;
+
   protected getInputValue(
     node: any,
     fieldName: string,

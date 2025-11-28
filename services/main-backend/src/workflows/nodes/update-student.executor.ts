@@ -4,7 +4,7 @@ import { StudentsService } from '../../students/students.service';
 
 @Injectable()
 export class UpdateStudentNodeExecutor implements NodeExecutor {
-  constructor(private studentsService: StudentsService) {}
+  constructor(private studentsService: StudentsService) { }
 
   async execute(
     node: any,
@@ -47,6 +47,21 @@ export class UpdateStudentNodeExecutor implements NodeExecutor {
       output: {
         updatedStudent,
       },
+    };
+  }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'update-student',
+      label: 'Update Student',
+      category: 'Action',
+      description: 'Updates student information.',
+      fields: [
+        { name: 'studentId', label: 'Student ID', type: 'text' },
+        { name: 'field', label: 'Field to Update', type: 'select', options: [{ label: 'Status', value: 'status' }, { label: 'Class', value: 'class' }] },
+        { name: 'value', label: 'New Value', type: 'text' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'Updated' }],
     };
   }
 }

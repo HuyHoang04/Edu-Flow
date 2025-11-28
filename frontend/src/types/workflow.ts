@@ -3,7 +3,7 @@ import { Node } from "@xyflow/react";
 
 export type NodeCategory = "Trigger" | "Action" | "Logic" | "AI" | "Data";
 
-export type FieldType = "text" | "number" | "select" | "boolean" | "textarea" | "date";
+export type FieldType = "text" | "number" | "select" | "boolean" | "textarea" | "date" | "json";
 
 export interface NodeField {
     name: string;

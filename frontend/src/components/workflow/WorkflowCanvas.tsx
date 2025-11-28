@@ -15,8 +15,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import CustomNode from "./CustomNode";
-import { NODE_REGISTRY } from "./nodeRegistry";
 import { NodeData, WorkflowNode } from "@/types/workflow";
+import { useWorkflowConfig } from "./WorkflowConfigContext";
 
 let id = 0;
 const getId = () => `dndnode_${id++}`;
@@ -40,6 +40,7 @@ export function WorkflowCanvas({
 }: WorkflowCanvasProps) {
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const { screenToFlowPosition } = useReactFlow();
+    const { getNodeDefinition } = useWorkflowConfig();
 
     const nodeTypes = useMemo<NodeTypes>(() => ({
         custom: CustomNode,
@@ -66,7 +67,7 @@ export function WorkflowCanvas({
                 return;
             }
 
-            const definition = NODE_REGISTRY[type];
+            const definition = getNodeDefinition(type);
             if (!definition) return;
 
             const position = screenToFlowPosition({
@@ -82,12 +83,13 @@ export function WorkflowCanvas({
                     label: definition.label,
                     category: definition.category,
                     nodeType: type,
+                    definition: definition, // Pass definition for CustomNode optimization
                 },
             };
 
             setNodes((nds: WorkflowNode[]) => nds.concat(newNode));
         },
-        [screenToFlowPosition, setNodes],
+        [screenToFlowPosition, setNodes, getNodeDefinition],
     );
 
     return (

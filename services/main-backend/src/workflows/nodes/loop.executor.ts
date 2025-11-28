@@ -84,4 +84,20 @@ export class LoopNodeExecutor implements NodeExecutor {
       };
     }
   }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'loop',
+      label: 'Loop',
+      category: 'Logic',
+      description: 'Iterates over a list.',
+      fields: [
+        { name: 'items', label: 'Items to Loop', type: 'text', placeholder: 'Array variable' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [
+        { id: 'item', type: 'source', label: 'Each Item' },
+        { id: 'completed', type: 'source', label: 'Completed' }
+      ],
+    };
+  }
 }

@@ -5,7 +5,30 @@ import { ReportType } from '../../reports/report.entity';
 
 @Injectable()
 export class ReportNodeExecutor implements NodeExecutor {
-  constructor(private reportsService: ReportsService) {}
+  constructor(private reportsService: ReportsService) { }
+  getDefinition(): import("../node-definition.interface").NodeDefinition {
+    return {
+      type: 'report',
+      label: 'Report',
+      category: 'Data',
+      description: 'Generates a report based on the specified type.',
+      fields: [
+        {
+          name: 'reportType',
+          label: 'Report Type',
+          type: 'select',
+          options: Object.values(ReportType).map(t => ({ label: t, value: t }))
+        },
+        { name: 'classId', label: 'Class ID', type: 'text' },
+        { name: 'examId', label: 'Exam ID', type: 'text' },
+        { name: 'studentId', label: 'Student ID', type: 'text' },
+        { name: 'startDate', label: 'Start Date', type: 'date' },
+        { name: 'endDate', label: 'End Date', type: 'date' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'Report' }],
+    };
+  }
 
   async execute(
     node: any,

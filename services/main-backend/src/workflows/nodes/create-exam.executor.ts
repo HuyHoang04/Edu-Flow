@@ -9,7 +9,7 @@ export class CreateExamNodeExecutor implements NodeExecutor {
     @Inject(forwardRef(() => ExamsService))
     private examsService: ExamsService,
     private questionsService: QuestionsService,
-  ) {}
+  ) { }
 
   async execute(
     node: any,
@@ -80,6 +80,25 @@ export class CreateExamNodeExecutor implements NodeExecutor {
         exam: exam,
         questionCount: examQuestions.length,
       },
+    };
+  }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'create-exam',
+      label: 'Create Exam',
+      category: 'Action',
+      description: 'Creates a new exam.',
+      fields: [
+        { name: 'title', label: 'Exam Title', type: 'text' },
+        { name: 'duration', label: 'Duration (mins)', type: 'number', defaultValue: 60 },
+        { name: 'questionBankId', label: 'Question Bank ID', type: 'text' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'Created' }],
+      outputVariables: [
+        { name: 'createdExamId', label: 'Exam ID', description: 'The ID of the created exam' },
+        { name: 'questionCount', label: 'Question Count', description: 'Number of questions in the exam' }
+      ]
     };
   }
 }

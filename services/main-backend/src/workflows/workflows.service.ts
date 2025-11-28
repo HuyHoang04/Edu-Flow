@@ -44,20 +44,28 @@ export class WorkflowsService {
     @Inject(forwardRef(() => ExamsService))
     private examsService: ExamsService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
-  async generateFromPrompt(prompt: string): Promise<any> {
+  async generateFromPrompt(
+    prompt: string,
+    availableNodes?: any[],
+  ): Promise<any> {
     const aiServiceUrl =
-      this.configService.get('AI_SERVICE_URL') || 'http://localhost:8000';
+      this.configService.get('AI_SERVICE_URL') || 'http://localhost:8001';
     try {
       const response = await axios.post(`${aiServiceUrl}/workflows/generate`, {
         prompt,
+        available_nodes: availableNodes,
       });
       return response.data;
     } catch (error) {
       console.error('Failed to generate workflow:', error);
       throw new Error('Failed to generate workflow');
     }
+  }
+
+  getNodeDefinitions() {
+    return this.nodeRegistry.getAllDefinitions();
   }
 
   // Workflow CRUD

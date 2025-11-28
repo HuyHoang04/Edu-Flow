@@ -5,9 +5,11 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "Teacher Automation System",
-    description: "Hệ thống tự động hóa công việc giáo viên",
+    title: "Education Automation Hub (EAH)",
+    description: "Hệ thống tự động hóa giáo dục toàn diện",
 };
+
+import { Providers } from "@/components/providers/Providers";
 
 export default function RootLayout({
     children,
@@ -15,8 +17,10 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="vi" className="dark">
-            <body className={inter.className}>{children}</body>
+        <html lang="vi" suppressHydrationWarning>
+            <body className={inter.className}>
+                <Providers>{children}</Providers>
+            </body>
         </html>
     );
 }

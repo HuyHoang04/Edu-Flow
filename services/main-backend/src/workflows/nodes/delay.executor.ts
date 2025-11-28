@@ -18,4 +18,17 @@ export class DelayNodeExecutor implements NodeExecutor {
       context,
     };
   }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'delay',
+      label: 'Delay',
+      category: 'Logic',
+      description: 'Pauses execution for a duration.',
+      fields: [
+        { name: 'duration', label: 'Duration (ms)', type: 'number', defaultValue: 1000 },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'After Delay' }],
+    };
+  }
 }

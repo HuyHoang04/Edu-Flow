@@ -5,11 +5,11 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AIGradeExecutor implements NodeExecutor {
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   async execute(node: any, context: any): Promise<any> {
     const aiServiceUrl =
-      this.configService.get('AI_SERVICE_URL') || 'http://localhost:8000';
+      this.configService.get('AI_SERVICE_URL') || 'http://localhost:8001';
     const {
       submissionKey,
       rubric,
@@ -69,5 +69,23 @@ export class AIGradeExecutor implements NodeExecutor {
     return text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       return context[key] !== undefined ? context[key] : match;
     });
+  }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'ai-grade',
+      label: 'AI Grade',
+      category: 'AI',
+      description: 'AI grades a submission.',
+      fields: [
+        { name: 'submission', label: 'Submission Text', type: 'textarea' },
+        { name: 'rubric', label: 'Rubric', type: 'textarea' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'score', type: 'source', label: 'Score' }, { id: 'feedback', type: 'source', label: 'Feedback' }],
+      outputVariables: [
+        { name: 'gradeScore', label: 'Score', description: 'The grade score (0-100)' },
+        { name: 'gradeFeedback', label: 'Feedback', description: 'Detailed feedback from AI' }
+      ]
+    };
   }
 }

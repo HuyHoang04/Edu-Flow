@@ -9,7 +9,7 @@ export class GetClassesNodeExecutor implements NodeExecutor {
   constructor(
     @InjectRepository(Class)
     private classRepository: Repository<Class>,
-  ) {}
+  ) { }
 
   async execute(node: any, context: any): Promise<any> {
     const { semester, outputKey = 'classes' } = node.data;
@@ -48,5 +48,18 @@ export class GetClassesNodeExecutor implements NodeExecutor {
         context,
       };
     }
+  }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'get-classes',
+      label: 'Get Classes',
+      category: 'Data',
+      description: 'Fetches a list of classes.',
+      fields: [
+        { name: 'semester', label: 'Semester', type: 'text' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'Classes' }],
+    };
   }
 }

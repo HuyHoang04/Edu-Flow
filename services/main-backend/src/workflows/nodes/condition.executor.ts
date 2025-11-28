@@ -96,4 +96,22 @@ export class ConditionNodeExecutor implements NodeExecutor {
       nextNodes: nextNodes,
     };
   }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'condition',
+      label: 'Condition (If/Else)',
+      category: 'Logic',
+      description: 'Checks a condition.',
+      fields: [
+        { name: 'variable', label: 'Variable', type: 'text' },
+        { name: 'operator', label: 'Operator', type: 'select', options: [{ label: 'Equals', value: 'eq' }, { label: 'Contains', value: 'contains' }, { label: 'Greater Than', value: 'gt' }] },
+        { name: 'value', label: 'Value', type: 'text' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [
+        { id: 'true', type: 'source', label: 'True' },
+        { id: 'false', type: 'source', label: 'False' }
+      ],
+    };
+  }
 }

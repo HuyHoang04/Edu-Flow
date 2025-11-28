@@ -60,5 +60,11 @@ export const AttendanceService = {
     sendReport: async (data: { classId: string, startDate: string, endDate: string, email: string, generatedBy: string }) => {
         const response = await api.post('/reports/attendance/email', data);
         return response.data;
+    },
+
+    // Thống kê tuần
+    getWeeklyStats: async () => {
+        const response = await api.get('/attendance/stats/weekly/all');
+        return response.data;
     }
 };

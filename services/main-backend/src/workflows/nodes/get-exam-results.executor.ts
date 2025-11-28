@@ -9,7 +9,7 @@ export class GetExamResultsNodeExecutor implements NodeExecutor {
   constructor(
     @InjectRepository(ExamResult)
     private examResultRepository: Repository<ExamResult>,
-  ) {}
+  ) { }
 
   async execute(node: any, context: any): Promise<any> {
     const { examId, outputKey = 'examResults' } = node.data;
@@ -62,5 +62,18 @@ export class GetExamResultsNodeExecutor implements NodeExecutor {
         context,
       };
     }
+  }
+  getDefinition(): import('../node-definition.interface').NodeDefinition {
+    return {
+      type: 'get-exam-results',
+      label: 'Get Exam Results',
+      category: 'Data',
+      description: 'Fetches results for an exam.',
+      fields: [
+        { name: 'examId', label: 'Exam', type: 'select', dynamicOptions: 'exams' },
+      ],
+      inputs: [{ id: 'in', type: 'target', label: 'In' }],
+      outputs: [{ id: 'out', type: 'source', label: 'Results' }],
+    };
   }
 }
