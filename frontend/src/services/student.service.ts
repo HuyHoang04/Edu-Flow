@@ -18,6 +18,11 @@ export const StudentService = {
         return response.data;
     },
 
+    getByClass: async (classId: string) => {
+        const response = await api.get<Student[]>(`/students?classId=${classId}`);
+        return response.data;
+    },
+
     getById: async (id: string) => {
         const response = await api.get<Student>(`/students/${id}`);
         return response.data;

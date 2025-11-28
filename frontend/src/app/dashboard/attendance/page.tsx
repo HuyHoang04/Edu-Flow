@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Class, ClassService } from "@/services/class.service";
-import { Attendance, AttendanceService } from "@/services/attendance.service";
+import { Attendance, AttendanceSession, AttendanceService } from "@/services/attendance.service";
 import { Student, StudentService } from "@/services/student.service";
-import { Loader2, Save, Search, UserCheck, UserX, Clock, FileText, Filter, CheckCircle2, Plus, Share2 } from "lucide-react";
+import { Loader2, Save, Search, UserCheck, UserX, Clock, FileText, Filter, CheckCircle2, Plus, Share2, RefreshCw, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ export default function AttendancePage() {
     const [isSaving, setIsSaving] = useState(false);
 
     // Session State
+    const [sessions, setSessions] = useState<AttendanceSession[]>([]);
+    const [selectedSessionId, setSelectedSessionId] = useState<string>("all");
     const [showSessionModal, setShowSessionModal] = useState(false);
     const [activeSession, setActiveSession] = useState<any>(null);
     const [creatingSession, setCreatingSession] = useState(false);
@@ -41,6 +43,9 @@ export default function AttendancePage() {
 
     // Load Data when Class or Date changes
     useEffect(() => {
+        if (selectedClassId) {
+            loadSessions();
+        }
         if (selectedClassId && selectedDate) {
             loadAttendanceData();
         }
@@ -56,6 +61,16 @@ export default function AttendancePage() {
         } catch (error) {
             console.error("Failed to load classes", error);
             toast.error("Không thể tải danh sách lớp");
+        }
+    };
+
+    const loadSessions = async () => {
+        if (!selectedClassId) return;
+        try {
+            const data = await AttendanceService.getSessionsByClass(selectedClassId);
+            setSessions(data);
+        } catch (error) {
+            console.error("Failed to load sessions", error);
         }
     };
 
@@ -76,9 +91,7 @@ export default function AttendancePage() {
             });
             setAttendanceMap(map);
 
-        } catch (error) {
-            console.error("Failed to load data", error);
-            toast.error("Lỗi tải dữ liệu điểm danh");
+
         } finally {
             setIsLoading(false);
         }
@@ -125,7 +138,7 @@ export default function AttendancePage() {
         }
     };
 
-    const handleCreateSession = async () => {
+    const handleCreateSession = async (duration: number = 10) => {
         if (!selectedClassId) {
             toast.error("Vui lòng chọn lớp học");
             return;
@@ -133,14 +146,45 @@ export default function AttendancePage() {
 
         setCreatingSession(true);
         try {
-            const session = await AttendanceService.createSession(selectedClassId, 10); // 10 minutes default
+            const session = await AttendanceService.createSession(selectedClassId, duration);
             setActiveSession(session);
-            setShowSessionModal(true);
+            loadSessions(); // Reload sessions list
+            // Modal is already open
         } catch (error) {
             console.error(error);
             toast.error("Không thể tạo phiên điểm danh");
         } finally {
             setCreatingSession(false);
+        }
+    };
+
+    // Report State
+    const [showReportDialog, setShowReportDialog] = useState(false);
+    const [reportEmail, setReportEmail] = useState("");
+    const [sendingReport, setSendingReport] = useState(false);
+
+    const handleSendReport = async () => {
+        if (!reportEmail) {
+            toast.error("Vui lòng nhập email nhận báo cáo");
+            return;
+        }
+
+        setSendingReport(true);
+        try {
+            await AttendanceService.sendReport({
+                classId: selectedClassId,
+                startDate: selectedDate, // For now just daily report, can expand to range later
+                endDate: selectedDate,
+                email: reportEmail,
+                generatedBy: "Teacher" // Should get from auth context
+            });
+            toast.success("Đã gửi báo cáo thành công!");
+            setShowReportDialog(false);
+        } catch (error) {
+            console.error("Send report failed", error);
+            toast.error("Gửi báo cáo thất bại");
+        } finally {
+            setSendingReport(false);
         }
     };
 
@@ -168,35 +212,97 @@ export default function AttendancePage() {
                 <div className="flex flex-wrap gap-3 items-center">
                     <div className="flex items-center gap-2 bg-background border rounded-md px-3 py-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Lớp:</span>
                         <select
-                            className="bg-transparent border-none text-sm focus:outline-none w-[150px]"
+                            className="bg-transparent border-none text-sm focus:outline-none w-[150px] text-foreground"
                             value={selectedClassId}
                             onChange={(e) => setSelectedClassId(e.target.value)}
                         >
                             {classes.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                                <option key={c.id} value={c.id} className="bg-background text-foreground">{c.name}</option>
                             ))}
                         </select>
                     </div>
 
                     <div className="flex items-center gap-2 bg-background border rounded-md px-3 py-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Ngày:</span>
                         <input
                             type="date"
-                            className="bg-transparent border-none text-sm focus:outline-none"
+                            className="bg-transparent border-none text-sm focus:outline-none text-foreground"
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
                         />
                     </div>
 
+                    <div className="flex items-center gap-2 bg-background border rounded-md px-3 py-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Phiên:</span>
+                        <select
+                            className="bg-transparent border-none text-sm focus:outline-none w-[150px] text-foreground"
+                            value={selectedSessionId}
+                            onChange={(e) => setSelectedSessionId(e.target.value)}
+                        >
+                            <option value="all" className="bg-background text-foreground">Tất cả trong ngày</option>
+                            {sessions
+                                .filter(s => new Date(s.createdAt).toISOString().split('T')[0] === selectedDate)
+                                .map(s => (
+                                    <option key={s.id} value={s.id} className="bg-background text-foreground">
+                                        {new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {s.code}
+                                    </option>
+                                ))
+                            }
+                        </select>
+                    </div>
+
                     <Button
                         variant="outline"
-                        onClick={handleCreateSession}
-                        disabled={creatingSession || !selectedClassId}
+                        size="icon"
+                        onClick={loadAttendanceData}
+                        disabled={isLoading}
+                        title="Làm mới dữ liệu"
+                    >
+                        <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        onClick={() => setShowSessionModal(true)}
+                        disabled={!selectedClassId}
                         className="flex items-center gap-2"
                     >
-                        {creatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                        Tạo Phiên
+                        <Clock className="h-4 w-4" />
+                        Quản lý Phiên
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            const newMap = { ...attendanceMap };
+                            students.forEach(s => {
+                                if (!newMap[s.id]) {
+                                    newMap[s.id] = {
+                                        id: "",
+                                        studentId: s.id,
+                                        classId: selectedClassId,
+                                        date: selectedDate,
+                                        status: 'present',
+                                        note: '',
+                                        createdAt: new Date().toISOString(),
+                                        scheduleId: ""
+                                    };
+                                } else {
+                                    newMap[s.id] = { ...newMap[s.id], status: 'present' };
+                                }
+                            });
+                            setAttendanceMap(newMap);
+                        }}
+                        disabled={students.length === 0}
+                        className="flex items-center gap-2"
+                        title="Đánh dấu tất cả có mặt"
+                    >
+                        <UserCheck className="h-4 w-4" />
+                        Tất cả
                     </Button>
 
                     <Button
@@ -206,6 +312,17 @@ export default function AttendancePage() {
                     >
                         {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Lưu Thay Đổi
+                    </Button>
+
+                    <Button
+                        variant="secondary"
+                        onClick={() => setShowReportDialog(true)}
+                        disabled={students.length === 0}
+                        className="flex items-center gap-2"
+                        title="Gửi báo cáo qua email"
+                    >
+                        <FileText className="h-4 w-4" />
+                        Báo Cáo
                     </Button>
                 </div>
             </div>
@@ -263,17 +380,44 @@ export default function AttendancePage() {
                             </thead>
                             <tbody className="divide-y">
                                 {students.map((student, index) => {
-                                    const record = attendanceMap[student.id];
-                                    const status = record?.status;
+                                    let record = attendanceMap[student.id];
+                                    let status: Attendance['status'] | undefined = record?.status;
+
+                                    // Filter by Session Time Window if a specific session is selected
+                                    if (selectedSessionId !== 'all' && record?.createdAt) {
+                                        const session = sessions.find(s => s.id === selectedSessionId);
+                                        if (session) {
+                                            const recordTime = new Date(record.createdAt).getTime();
+                                            const sessionStart = new Date(session.createdAt).getTime();
+                                            const sessionEnd = new Date(session.expiryTime).getTime();
+
+                                            // If record was created outside this session's window (with some buffer, e.g. 5 mins before/after)
+                                            // Then for THIS session view, consider them absent (or just don't show the status)
+                                            // However, since we only have one record per day, this is a visual filter only.
+                                            if (recordTime < sessionStart - 5 * 60000 || recordTime > sessionEnd + 30 * 60000) {
+                                                // If the record is not from this session, we treat it as if they haven't checked in FOR THIS SESSION
+                                                // But we should be careful not to hide "Excused" or manual entries.
+                                                // For now, let's just show the status but maybe dim it or add a note?
+                                                // Or strictly: if selectedSessionId is active, only show 'present' if it matches.
+
+                                                // Let's go with: If record exists but is outside window, treat as 'absent' for this view
+                                                // UNLESS it was manually marked (we can't distinguish manual vs auto easily without 'note')
+                                                if (record.note === 'Checked in via code') {
+                                                    status = undefined; // Reset status for this view
+                                                    record = { ...record, status: 'absent' } as any; // Dummy to show absent
+                                                }
+                                            }
+                                        }
+                                    }
 
                                     return (
                                         <tr key={student.id} className={cn(
                                             "hover:bg-muted/30 transition-colors",
-                                            status === 'absent' ? "bg-red-50/30" : ""
+                                            status === 'absent' || !status ? "bg-red-50/30" : ""
                                         )}>
                                             <td className="p-4 text-muted-foreground">{index + 1}</td>
                                             <td className="p-4 font-medium">{student.name}</td>
-                                            <td className="p-4 text-muted-foreground">{student.studentId}</td>
+                                            <td className="p-4 text-muted-foreground">{student.code}</td>
                                             <td className="p-4">
                                                 <div className="flex justify-center gap-1">
                                                     <StatusButton
@@ -323,31 +467,112 @@ export default function AttendancePage() {
             <Dialog open={showSessionModal} onOpenChange={setShowSessionModal}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-center">Mã Điểm Danh</DialogTitle>
-                        <DialogDescription className="text-center">
-                            Cung cấp mã này cho sinh viên để điểm danh
+                        <DialogTitle>Quản lý Phiên Điểm Danh</DialogTitle>
+                        <DialogDescription>
+                            Tạo phiên mới hoặc xem các phiên đang hoạt động
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex flex-col items-center justify-center py-6 space-y-4">
-                        <div className="bg-muted p-8 rounded-xl border-2 border-dashed border-primary/50">
-                            <span className="text-6xl font-mono font-bold tracking-[0.2em] text-primary">
-                                {activeSession?.code}
-                            </span>
-                        </div>
 
-                        <div className="text-center space-y-1">
-                            <p className="text-sm text-muted-foreground">
-                                Hết hạn lúc: <span className="font-medium text-foreground">{activeSession && new Date(activeSession.expiryTime).toLocaleTimeString()}</span>
-                            </p>
-                            <div className="flex items-center gap-2 justify-center p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-                                <Share2 className="h-3 w-3" />
-                                {typeof window !== 'undefined' ? `${window.location.origin}/attendance/join/${activeSession?.code}` : ''}
+                    <div className="space-y-6 py-4">
+                        {/* Create New Session */}
+                        <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+                            <h3 className="font-medium text-sm flex items-center gap-2">
+                                <Plus className="h-4 w-4" /> Tạo phiên mới
+                            </h3>
+                            <div className="flex gap-3 items-end">
+                                <div className="flex-1 space-y-2">
+                                    <label className="text-xs font-medium text-muted-foreground">Thời gian (phút)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        defaultValue="10"
+                                        id="session-duration"
+                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    />
+                                </div>
+                                <Button
+                                    onClick={() => {
+                                        const durationInput = document.getElementById('session-duration') as HTMLInputElement;
+                                        const duration = parseInt(durationInput.value) || 10;
+                                        handleCreateSession(duration);
+                                    }}
+                                    disabled={creatingSession}
+                                >
+                                    {creatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : "Tạo ngay"}
+                                </Button>
                             </div>
                         </div>
+
+                        {/* Active Session Display */}
+                        {activeSession && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-medium text-sm text-green-600 flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4" /> Phiên đang hoạt động
+                                    </h3>
+                                    <span className="text-xs text-muted-foreground">
+                                        Hết hạn: {new Date(activeSession.expiryTime).toLocaleTimeString()}
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-col items-center justify-center space-y-4">
+                                    <div className="bg-primary/10 p-6 rounded-xl border-2 border-dashed border-primary/50 w-full text-center">
+                                        <span className="text-5xl font-mono font-bold tracking-[0.2em] text-primary">
+                                            {activeSession.code}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 justify-center p-2 bg-muted rounded text-xs text-muted-foreground w-full">
+                                        <Share2 className="h-3 w-3" />
+                                        <span className="truncate">
+                                            {typeof window !== 'undefined' ? `${window.location.origin}/attendance/join/${activeSession.code}` : ''}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <DialogFooter className="sm:justify-center">
+
+                    <DialogFooter className="sm:justify-between">
+                        <p className="text-xs text-muted-foreground self-center">
+                            * Sinh viên dùng mã này để điểm danh
+                        </p>
                         <Button type="button" variant="secondary" onClick={() => setShowSessionModal(false)}>
                             Đóng
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Report Dialog */}
+            <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Gửi Báo Cáo Điểm Danh</DialogTitle>
+                        <DialogDescription>
+                            Báo cáo sẽ được gửi đến email của bạn.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Email nhận báo cáo</label>
+                            <input
+                                type="email"
+                                placeholder="example@email.com"
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                value={reportEmail}
+                                onChange={(e) => setReportEmail(e.target.value)}
+                            />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            * Báo cáo bao gồm thống kê chuyên cần và danh sách chi tiết của ngày {new Date(selectedDate).toLocaleDateString('vi-VN')}.
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowReportDialog(false)}>Hủy</Button>
+                        <Button onClick={handleSendReport} disabled={sendingReport}>
+                            {sendingReport ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Gửi Báo Cáo
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -358,10 +583,30 @@ export default function AttendancePage() {
 
 function StatusButton({ active, type, onClick }: { active: boolean, type: string, onClick: () => void }) {
     const config = {
-        present: { label: "Có mặt", color: "bg-green-100 text-green-700 hover:bg-green-200", activeColor: "bg-green-600 text-white shadow-md ring-2 ring-green-600 ring-offset-1" },
-        absent: { label: "Vắng", color: "bg-red-100 text-red-700 hover:bg-red-200", activeColor: "bg-red-600 text-white shadow-md ring-2 ring-red-600 ring-offset-1" },
-        late: { label: "Muộn", color: "bg-yellow-100 text-yellow-700 hover:bg-yellow-200", activeColor: "bg-yellow-500 text-white shadow-md ring-2 ring-yellow-500 ring-offset-1" },
-        excused: { label: "Phép", color: "bg-blue-100 text-blue-700 hover:bg-blue-200", activeColor: "bg-blue-600 text-white shadow-md ring-2 ring-blue-600 ring-offset-1" },
+        present: {
+            label: "Có mặt",
+            color: "bg-green-100 text-green-700 hover:bg-green-200 border-green-200",
+            activeColor: "bg-green-600 text-white shadow-md ring-2 ring-green-600 ring-offset-1 hover:bg-green-700 border-transparent",
+            icon: <UserCheck className="h-3 w-3 mr-1" />
+        },
+        absent: {
+            label: "Vắng",
+            color: "bg-red-100 text-red-700 hover:bg-red-200 border-red-200",
+            activeColor: "bg-red-600 text-white shadow-md ring-2 ring-red-600 ring-offset-1 hover:bg-red-700 border-transparent",
+            icon: <UserX className="h-3 w-3 mr-1" />
+        },
+        late: {
+            label: "Muộn",
+            color: "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200",
+            activeColor: "bg-yellow-500 text-white shadow-md ring-2 ring-yellow-500 ring-offset-1 hover:bg-yellow-600 border-transparent",
+            icon: <Clock className="h-3 w-3 mr-1" />
+        },
+        excused: {
+            label: "Phép",
+            color: "bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200",
+            activeColor: "bg-blue-600 text-white shadow-md ring-2 ring-blue-600 ring-offset-1 hover:bg-blue-700 border-transparent",
+            icon: <FileText className="h-3 w-3 mr-1" />
+        },
     };
 
     const style = config[type as keyof typeof config];
@@ -370,10 +615,11 @@ function StatusButton({ active, type, onClick }: { active: boolean, type: string
         <button
             onClick={onClick}
             className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 min-w-[70px]",
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 min-w-[80px] flex items-center justify-center border",
                 active ? style.activeColor : style.color
             )}
         >
+            {active && style.icon}
             {style.label}
         </button>
     );

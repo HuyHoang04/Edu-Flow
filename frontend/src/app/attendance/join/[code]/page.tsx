@@ -130,18 +130,18 @@ export default function StudentCheckInPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="bg-white/50 p-4 rounded-lg space-y-2">
+                        <div className="bg-slate-50 p-4 rounded-lg space-y-2 border border-slate-100">
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Sinh viên:</span>
-                                <span className="font-medium">{studentId}</span>
+                                <span className="text-slate-600 font-medium">Sinh viên:</span>
+                                <span className="font-bold text-slate-900">{studentId}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Lớp:</span>
-                                <span className="font-medium">{classInfo?.name || 'Unknown Class'}</span>
+                                <span className="text-slate-600 font-medium">Lớp:</span>
+                                <span className="font-bold text-slate-900">{classInfo?.name || 'Unknown Class'}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Thời gian:</span>
-                                <span className="font-medium">{new Date().toLocaleTimeString()}</span>
+                                <span className="text-slate-600 font-medium">Thời gian:</span>
+                                <span className="font-bold text-slate-900">{new Date().toLocaleTimeString()}</span>
                             </div>
                         </div>
                     </CardContent>

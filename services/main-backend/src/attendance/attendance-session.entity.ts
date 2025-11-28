@@ -19,12 +19,12 @@ export class AttendanceSession {
   @Column({ unique: true })
   code: string; // e.g. "123456"
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz', nullable: true })
   expiryTime: Date;
 
   @Column({ default: true })
   isActive: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

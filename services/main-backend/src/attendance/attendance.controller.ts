@@ -16,7 +16,7 @@ import { Attendance } from './attendance.entity';
 @Controller('attendance')
 @UseGuards(JwtAuthGuard)
 export class AttendanceController {
-  constructor(private attendanceService: AttendanceService) {}
+  constructor(private attendanceService: AttendanceService) { }
 
   @Get()
   async findAll(
@@ -89,6 +89,11 @@ export class AttendanceController {
   @Get('session/:code')
   async getSession(@Param('code') code: string) {
     return this.attendanceService.getSessionByCode(code);
+  }
+
+  @Get('sessions/:classId')
+  async getSessions(@Param('classId') classId: string) {
+    return this.attendanceService.getSessionsByClass(classId);
   }
 
   @Post('check-in')

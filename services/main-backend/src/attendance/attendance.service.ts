@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { AttendanceSession } from './attendance-session.entity';
 import { Attendance } from './attendance.entity';
+import { Student } from '../students/student.entity';
 
 @Injectable()
 export class AttendanceService {
@@ -11,7 +12,9 @@ export class AttendanceService {
     private attendanceRepository: Repository<Attendance>,
     @InjectRepository(AttendanceSession)
     private attendanceSessionRepository: Repository<AttendanceSession>,
-  ) {}
+    @InjectRepository(Student)
+    private studentRepository: Repository<Student>,
+  ) { }
 
   async createSession(data: {
     classId: string;
@@ -39,7 +42,14 @@ export class AttendanceService {
     });
   }
 
-  async checkInWithCode(code: string, studentId: string): Promise<Attendance> {
+  async getSessionsByClass(classId: string): Promise<AttendanceSession[]> {
+    return this.attendanceSessionRepository.find({
+      where: { classId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async checkInWithCode(code: string, studentCode: string): Promise<Attendance> {
     const session = await this.getSessionByCode(code);
     if (!session) {
       throw new Error('Mã điểm danh không hợp lệ hoặc đã hết hạn');
@@ -49,13 +59,19 @@ export class AttendanceService {
       throw new Error('Mã điểm danh đã hết hạn');
     }
 
+    // Lookup student by MSSV (code)
+    const student = await this.studentRepository.findOne({ where: { code: studentCode } });
+    if (!student) {
+      throw new Error(`Không tìm thấy sinh viên với mã số ${studentCode}`);
+    }
+
     // Check if already checked in today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const existing = await this.attendanceRepository.findOne({
       where: {
-        studentId,
+        studentId: student.id,
         classId: session.classId,
         date: today,
       },
@@ -73,7 +89,7 @@ export class AttendanceService {
 
     // Create new record
     const attendance = this.attendanceRepository.create({
-      studentId,
+      studentId: student.id,
       classId: session.classId,
       scheduleId: session.scheduleId,
       date: today,
