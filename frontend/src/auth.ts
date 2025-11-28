@@ -19,8 +19,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (account?.provider === "google") {
                 try {
                     // Exchange Google profile for Backend JWT
+                    const apiUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL;
                     const response = await axios.post(
-                        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+                        `${apiUrl}/auth/login`,
                         {
                             googleId: user.id,
                             email: user.email,
@@ -63,4 +64,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     pages: {
         signIn: "/login",
     },
+    secret: process.env.AUTH_SECRET,
 });

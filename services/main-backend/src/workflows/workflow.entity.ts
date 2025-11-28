@@ -50,6 +50,9 @@ export class Workflow {
     config?: any;
   };
 
+  @Column({ nullable: true })
+  startNodeId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

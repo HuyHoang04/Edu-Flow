@@ -30,6 +30,7 @@ export interface CreateWorkflowDto {
     type: 'manual' | 'schedule' | 'event';
     config?: any;
   };
+  startNodeId?: string;
 }
 
 @Injectable()
@@ -241,12 +242,12 @@ export class WorkflowsService {
       let startNode;
 
       // First, check if workflow has explicit startNodeId
-      if ((workflow as any).startNodeId) {
+      if (workflow.startNodeId) {
         startNode = workflow.nodes.find(
-          (n) => n.id === (workflow as any).startNodeId,
+          (n) => n.id === workflow.startNodeId,
         );
         console.log(
-          `[Workflow] Using explicit startNodeId: ${(workflow as any).startNodeId}`,
+          `[Workflow] Using explicit startNodeId: ${workflow.startNodeId}`,
         );
       }
 

@@ -8,36 +8,57 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async validateGoogleUser(googleUser: any): Promise<User> {
-    // Check if user exists
-    let user = await this.usersService.findByGoogleId(googleUser.googleId);
+    try {
+      // Check if user exists by Google ID
+      let user = await this.usersService.findByGoogleId(googleUser.googleId);
 
-    if (!user) {
-      // Create new user
-      user = await this.usersService.create({
-        googleId: googleUser.googleId,
-        email: googleUser.email,
-        name: googleUser.name,
-        avatarUrl: googleUser.avatarUrl,
-        accessToken: googleUser.accessToken,
-        refreshToken: googleUser.refreshToken,
-        role: 'teacher',
-      });
-    } else {
-      // Update existing user tokens
-      user = await this.usersService.update(user.id, {
-        accessToken: googleUser.accessToken,
-        refreshToken: googleUser.refreshToken,
-        avatarUrl: googleUser.avatarUrl,
-      });
+      if (!user) {
+        // Check if user exists by email (to link accounts)
+        user = await this.usersService.findByEmail(googleUser.email);
+
+        if (user) {
+          console.log('Linking existing user by email:', googleUser.email);
+          // Update googleId and tokens
+          user = await this.usersService.update(user.id, {
+            googleId: googleUser.googleId,
+            accessToken: googleUser.accessToken,
+            refreshToken: googleUser.refreshToken,
+            avatarUrl: googleUser.avatarUrl,
+          });
+        } else {
+          // Create new user
+          console.log('Creating new user:', googleUser.email);
+          user = await this.usersService.create({
+            googleId: googleUser.googleId,
+            email: googleUser.email,
+            name: googleUser.name,
+            avatarUrl: googleUser.avatarUrl,
+            accessToken: googleUser.accessToken,
+            refreshToken: googleUser.refreshToken,
+            role: 'teacher',
+          });
+        }
+      } else {
+        // Update existing user tokens
+        console.log('Updating existing user:', user.email);
+        user = await this.usersService.update(user.id, {
+          accessToken: googleUser.accessToken,
+          refreshToken: googleUser.refreshToken,
+          avatarUrl: googleUser.avatarUrl,
+        });
+      }
+
+      // Update last login
+      await this.usersService.updateLastLogin(user.id);
+
+      return user;
+    } catch (error) {
+      console.error('Error in validateGoogleUser:', error);
+      throw error;
     }
-
-    // Update last login
-    await this.usersService.updateLastLogin(user.id);
-
-    return user;
   }
 
   async login(user: User) {

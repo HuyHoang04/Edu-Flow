@@ -11,7 +11,7 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: ['http://localhost:3000'], // Frontend URL
+    origin: true, // Allow all origins (reflects request origin)
     credentials: true,
   });
 
@@ -28,7 +28,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const port = configService.get('PORT') || 4000;
-  await app.listen(port);
+  // Listen on 0.0.0.0 to accept connections from all interfaces (IPv4 and IPv6)
+  await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Main Backend Service running on: http://localhost:${port}`);
   console.log(`📚 API available at: http://localhost:${port}/api`);
