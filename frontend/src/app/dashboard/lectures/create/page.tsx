@@ -30,7 +30,7 @@ export default function CreateLecturePage() {
         try {
             const lecture = await LectureService.generate(formData);
             toast.success("Lecture generated successfully!");
-            router.push("/dashboard/lectures"); // Or redirect to detail view
+            router.push(`/dashboard/lectures/${lecture.id}`);
         } catch (error) {
             toast.error("Failed to generate lecture");
             console.error(error);
@@ -93,7 +93,7 @@ export default function CreateLecturePage() {
                             <Label htmlFor="detail">Detail Level</Label>
                             <Select
                                 value={formData.detail_level}
-                                onValueChange={(value) => setFormData({ ...formData, detail_level: value })}
+                                onValueChange={(value: string) => setFormData({ ...formData, detail_level: value })}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select detail level" />
