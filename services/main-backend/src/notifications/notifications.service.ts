@@ -8,7 +8,7 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private notificationsRepository: Repository<Notification>,
-  ) {}
+  ) { }
 
   async create(data: Partial<Notification>): Promise<Notification> {
     const notification = this.notificationsRepository.create(data);
@@ -22,7 +22,10 @@ export class NotificationsService {
     });
   }
 
-  async markAsRead(id: string): Promise<void> {
-    await this.notificationsRepository.update(id, { isRead: true });
+  async markAsRead(id: string, userId: string): Promise<void> {
+    await this.notificationsRepository.update(
+      { id, recipientId: userId },
+      { isRead: true },
+    );
   }
 }

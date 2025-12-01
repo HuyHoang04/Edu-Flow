@@ -22,8 +22,8 @@ export class WorkflowsController {
   constructor(private workflowsService: WorkflowsService) { }
 
   @Get()
-  async findAll(@Query('createdBy') createdBy?: string) {
-    return this.workflowsService.findAll(createdBy);
+  async findAll(@Req() req: any) {
+    return this.workflowsService.findAll(req.user.id);
   }
 
   @Get(':id')

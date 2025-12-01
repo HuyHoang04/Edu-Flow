@@ -367,8 +367,10 @@ export default function ExamsPage() {
                                     Tạo câu hỏi mới
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[600px]">
+                            <DialogContent className="sm:max-w-[900px]">
                                 <DialogHeader>
+
+
                                     <DialogTitle>Tạo câu hỏi mới</DialogTitle>
                                     <DialogDescription>
                                         Tạo câu hỏi và tự động thêm vào đề thi này.
@@ -557,7 +559,7 @@ export default function ExamsPage() {
                                     Thêm từ ngân hàng
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[800px] max-h-[80vh] flex flex-col">
+                            <DialogContent className="sm:max-w-[1000px] max-h-[80vh] flex flex-col">
                                 <DialogHeader>
                                     <DialogTitle>Chọn câu hỏi từ ngân hàng</DialogTitle>
                                     <DialogDescription>
@@ -651,8 +653,8 @@ export default function ExamsPage() {
                             </div>
                         )}
                     </div>
-                </div>
-            </div>
+                </div >
+            </div >
         );
     }
 

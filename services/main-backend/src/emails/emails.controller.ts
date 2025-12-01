@@ -6,6 +6,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { EmailsService } from './emails.service';
 import type { SendEmailDto } from './emails.service';
@@ -14,11 +15,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('emails')
 @UseGuards(JwtAuthGuard)
 export class EmailsController {
-  constructor(private emailsService: EmailsService) {}
+  constructor(private emailsService: EmailsService) { }
 
   @Get()
-  async findAll(@Query('sentBy') sentBy?: string) {
-    return this.emailsService.findAll(sentBy);
+  async findAll(@Req() req: any) {
+    return this.emailsService.findAll(req.user.id);
   }
 
   @Get('stats/:userId')
@@ -32,8 +33,11 @@ export class EmailsController {
   }
 
   @Post('send')
-  async sendEmail(@Body() emailData: SendEmailDto) {
-    return this.emailsService.sendEmail(emailData);
+  async sendEmail(@Body() emailData: SendEmailDto, @Req() req: any) {
+    return this.emailsService.sendEmail({
+      ...emailData,
+      sentBy: req.user.id,
+    });
   }
 
   @Post('send/bulk')

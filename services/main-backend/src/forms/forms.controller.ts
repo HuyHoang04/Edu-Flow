@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FormsService } from './forms.service';
 import type { CreateFormDto, SubmitResponseDto } from './forms.service';
@@ -15,7 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('forms')
 export class FormsController {
-  constructor(private formsService: FormsService) {}
+  constructor(private formsService: FormsService) { }
 
   // Public endpoint for form viewing and submission
   @Get('public/:id')
@@ -37,8 +38,8 @@ export class FormsController {
   // Protected endpoints
   @Get()
   @UseGuards(JwtAuthGuard)
-  async findAll(@Query('createdBy') createdBy?: string) {
-    return this.formsService.findAll(createdBy);
+  async findAll(@Req() req: any) {
+    return this.formsService.findAll(req.user.id);
   }
 
   @Get(':id')
@@ -67,8 +68,11 @@ export class FormsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  async create(@Body() formData: CreateFormDto) {
-    return this.formsService.create(formData);
+  async create(@Body() formData: CreateFormDto, @Req() req: any) {
+    return this.formsService.create({
+      ...formData,
+      createdBy: req.user.id,
+    });
   }
 
   @Put(':id')

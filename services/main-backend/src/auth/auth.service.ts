@@ -3,12 +3,46 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/user.entity';
 
+import * as bcrypt from 'bcrypt';
+
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
   ) { }
+
+  async register(registerDto: any): Promise<User> {
+    const { email, password, firstName, lastName } = registerDto;
+
+    // Check if user exists
+    const existingUser = await this.usersService.findByEmail(email);
+    if (existingUser) {
+      throw new Error('User already exists');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    return this.usersService.create({
+      email,
+      password: hashedPassword,
+      name: `${firstName} ${lastName}`,
+      role: 'teacher',
+      avatarUrl: `https://ui-avatars.com/api/?name=${firstName}+${lastName}`,
+    });
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.usersService.findByEmailWithPassword(email);
+
+    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
+      const { password, ...result } = user;
+      return result;
+    }
+    return null;
+  }
 
   async validateGoogleUser(googleUser: any): Promise<User> {
     try {
@@ -61,7 +95,7 @@ export class AuthService {
     }
   }
 
-  async login(user: User) {
+  async login(user: any) {
     const payload = { email: user.email, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),

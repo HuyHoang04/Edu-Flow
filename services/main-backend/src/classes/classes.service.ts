@@ -8,7 +8,7 @@ export class ClassesService {
   constructor(
     @InjectRepository(Class)
     public classesRepository: Repository<Class>,
-  ) {}
+  ) { }
 
   async findAll(teacherId?: string): Promise<Class[]> {
     const query = this.classesRepository
@@ -30,7 +30,10 @@ export class ClassesService {
   }
 
   async create(classData: Partial<Class>): Promise<Class> {
-    const classEntity = this.classesRepository.create(classData);
+    const classEntity = this.classesRepository.create({
+      ...classData,
+      subject: classData.subject || classData.name,
+    });
     return this.classesRepository.save(classEntity);
   }
 

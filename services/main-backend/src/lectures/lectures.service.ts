@@ -15,10 +15,12 @@ export class LecturesService {
     @InjectRepository(Lecture)
     private lecturesRepository: Repository<Lecture>,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
-  async findAll(): Promise<Lecture[]> {
-    return this.lecturesRepository.find({ order: { createdAt: 'DESC' } });
+  async findAll(createdBy?: string): Promise<Lecture[]> {
+    const where: any = {};
+    if (createdBy) where.createdBy = createdBy;
+    return this.lecturesRepository.find({ where, order: { createdAt: 'DESC' } });
   }
 
   async findById(id: string): Promise<Lecture | null> {
@@ -42,7 +44,7 @@ export class LecturesService {
         title: data.title,
         outline: data.outline,
         slides: data.slides,
-        createdBy: 'system', // Replace with actual user ID if available
+        createdBy: options.createdBy || 'system',
       });
 
       return this.lecturesRepository.save(lecture);

@@ -23,8 +23,11 @@ export class User {
   @Column({ default: 'teacher' })
   role: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   googleId: string;
+
+  @Column({ nullable: true, select: false }) // Select false to exclude from default queries
+  password: string;
 
   @Column({ nullable: true, type: 'text' })
   accessToken: string; // Gmail access token (encrypted)

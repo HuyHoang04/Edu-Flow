@@ -14,7 +14,7 @@ import type { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   @Get('google')
   @UseGuards(GoogleOAuthGuard)
@@ -48,6 +48,23 @@ export class AuthController {
     },
   ) {
     const user = await this.authService.validateGoogleUser(loginData);
+    return this.authService.login(user);
+  }
+
+  @Post('register')
+  async register(@Body() registerDto: any) {
+    return this.authService.register(registerDto);
+  }
+
+  @Post('login-credentials')
+  async loginCredentials(@Body() loginDto: any) {
+    const user = await this.authService.validateUser(
+      loginDto.email,
+      loginDto.password,
+    );
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
     return this.authService.login(user);
   }
 

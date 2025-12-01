@@ -25,14 +25,15 @@ export class ExamsService {
     private studentsService: StudentsService,
     @Inject(forwardRef(() => WorkflowsService))
     private workflowsService: WorkflowsService,
-  ) {}
+  ) { }
 
   // Exam CRUD
-  async findAll(classId?: string): Promise<Exam[]> {
-    if (classId) {
-      return this.examsRepository.find({ where: { classId } });
-    }
-    return this.examsRepository.find();
+  async findAll(classId?: string, teacherId?: string): Promise<Exam[]> {
+    const where: any = {};
+    if (classId) where.classId = classId;
+    if (teacherId) where.createdBy = teacherId;
+
+    return this.examsRepository.find({ where });
   }
 
   async findById(id: string): Promise<Exam | null> {
@@ -207,15 +208,13 @@ export class ExamsService {
       JSON.stringify(workflowContext, null, 2),
     );
 
-    try {
-      await this.workflowsService.triggerWorkflowsByEvent(
-        'EXAM_SUBMITTED',
-        workflowContext,
+    // Trigger workflow asynchronously (fire and forget)
+    this.workflowsService
+      .triggerWorkflowsByEvent('EXAM_SUBMITTED', workflowContext)
+      .then(() => console.log('[ExamsService] Workflow trigger completed'))
+      .catch((error) =>
+        console.error('[ExamsService] Workflow trigger error:', error),
       );
-      console.log('[ExamsService] Workflow trigger completed');
-    } catch (error) {
-      console.error('[ExamsService] Workflow trigger error:', error);
-    }
 
     return savedResult;
   }

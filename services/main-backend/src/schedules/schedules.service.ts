@@ -8,20 +8,24 @@ export class SchedulesService {
   constructor(
     @InjectRepository(Schedule)
     private schedulesRepository: Repository<Schedule>,
-  ) {}
+  ) { }
 
-  async findAll(classId?: string): Promise<Schedule[]> {
+  async findAll(classId?: string, teacherId?: string): Promise<Schedule[]> {
+    const query = this.schedulesRepository
+      .createQueryBuilder('schedule')
+      .leftJoinAndSelect('schedule.class', 'class')
+      .orderBy('schedule.dayOfWeek', 'ASC')
+      .addOrderBy('schedule.startTime', 'ASC');
+
     if (classId) {
-      return this.schedulesRepository.find({
-        where: { classId },
-        order: { dayOfWeek: 'ASC', startTime: 'ASC' },
-        relations: ['class'],
-      });
+      query.where('schedule.classId = :classId', { classId });
     }
-    return this.schedulesRepository.find({
-      order: { dayOfWeek: 'ASC' },
-      relations: ['class'],
-    });
+
+    if (teacherId) {
+      query.andWhere('class.teacherId = :teacherId', { teacherId });
+    }
+
+    return query.getMany();
   }
 
   async findByClass(classId: string): Promise<Schedule[]> {

@@ -17,22 +17,22 @@ import { Question, QuestionType, QuestionDifficulty } from './question.entity';
 @Controller('questions')
 @UseGuards(JwtAuthGuard)
 export class QuestionsController {
-  constructor(private questionsService: QuestionsService) {}
+  constructor(private questionsService: QuestionsService) { }
 
   @Get()
   async findAll(
-    @Query('subject') subject?: string,
-    @Query('topic') topic?: string,
-    @Query('difficulty') difficulty?: QuestionDifficulty,
-    @Query('type') type?: QuestionType,
-    @Query('createdBy') createdBy?: string,
+    @Query('subject') subject: string,
+    @Query('topic') topic: string,
+    @Query('difficulty') difficulty: QuestionDifficulty,
+    @Query('type') type: QuestionType,
+    @Req() req: any,
   ) {
     return this.questionsService.findAll({
       subject,
       topic,
       difficulty,
       type,
-      createdBy,
+      createdBy: req.user.id,
     });
   }
 

@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,10 +21,11 @@ export class AttendanceController {
 
   @Get()
   async findAll(
-    @Query('classId') classId?: string,
-    @Query('date') date?: string,
+    @Query('classId') classId: string,
+    @Query('date') date: string,
+    @Req() req: any,
   ) {
-    return this.attendanceService.findAll(classId, date);
+    return this.attendanceService.findAll(classId, date, req.user.id);
   }
 
   @Get('student/:studentId')
@@ -54,8 +56,8 @@ export class AttendanceController {
   }
 
   @Get('stats/weekly/all')
-  async getWeeklyStats() {
-    return this.attendanceService.getWeeklyStats();
+  async getWeeklyStats(@Req() req: any) {
+    return this.attendanceService.getWeeklyStats(req.user.id);
   }
 
   @Post()

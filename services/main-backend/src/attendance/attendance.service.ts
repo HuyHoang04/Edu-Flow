@@ -100,11 +100,24 @@ export class AttendanceService {
     return this.attendanceRepository.save(attendance);
   }
 
-  async findAll(classId?: string, date?: string): Promise<Attendance[]> {
-    const where: any = {};
-    if (classId) where.classId = classId;
-    if (date) where.date = new Date(date);
-    return this.attendanceRepository.find({ where });
+  async findAll(classId?: string, date?: string, teacherId?: string): Promise<Attendance[]> {
+    const query = this.attendanceRepository
+      .createQueryBuilder('attendance')
+      .leftJoinAndSelect('attendance.class', 'class');
+
+    if (classId) {
+      query.where('attendance.classId = :classId', { classId });
+    }
+
+    if (date) {
+      query.andWhere('attendance.date = :date', { date: new Date(date) });
+    }
+
+    if (teacherId) {
+      query.andWhere('class.teacherId = :teacherId', { teacherId });
+    }
+
+    return query.getMany();
   }
 
   async findByStudent(studentId: string): Promise<Attendance[]> {
@@ -174,17 +187,25 @@ export class AttendanceService {
       presentRate: total > 0 ? (present / total) * 100 : 0,
     };
   }
-  async getWeeklyStats() {
+  async getWeeklyStats(teacherId?: string) {
     const today = new Date();
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const records = await this.attendanceRepository.find({
-      where: {
-        date: Between(sevenDaysAgo, today),
-      },
-    });
+    const query = this.attendanceRepository
+      .createQueryBuilder('attendance')
+      .leftJoinAndSelect('attendance.class', 'class')
+      .where('attendance.date BETWEEN :start AND :end', {
+        start: sevenDaysAgo,
+        end: today,
+      });
+
+    if (teacherId) {
+      query.andWhere('class.teacherId = :teacherId', { teacherId });
+    }
+
+    const records = await query.getMany();
 
     const stats: { name: string; present: number; absent: number }[] = [];
     for (let i = 0; i < 7; i++) {

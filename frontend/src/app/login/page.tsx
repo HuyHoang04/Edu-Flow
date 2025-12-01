@@ -81,15 +81,45 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input id="email" placeholder="name@example.com" type="email" disabled />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Mật khẩu</Label>
-                                <Input id="password" type="password" disabled />
-                            </div>
-                            <Button className="w-full" disabled>Đăng nhập (Coming Soon)</Button>
+                            <form
+                                onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    setIsLoading(true);
+                                    const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value;
+                                    const password = (e.currentTarget.elements.namedItem("password") as HTMLInputElement).value;
+                                    try {
+                                        const result = await signIn("credentials", {
+                                            email,
+                                            password,
+                                            redirect: false,
+                                        });
+                                        if (result?.error) {
+                                            console.error("Login failed:", result.error);
+                                            // TODO: Show error toast
+                                        } else {
+                                            window.location.href = "/dashboard";
+                                        }
+                                    } catch (error) {
+                                        console.error("Login error:", error);
+                                    } finally {
+                                        setIsLoading(false);
+                                    }
+                                }}
+                                className="space-y-4"
+                            >
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input id="email" name="email" placeholder="name@example.com" type="email" required disabled={isLoading} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Mật khẩu</Label>
+                                    <Input id="password" name="password" type="password" required disabled={isLoading} />
+                                </div>
+                                <Button className="w-full" type="submit" disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Đăng nhập
+                                </Button>
+                            </form>
                         </div>
                     </div>
 

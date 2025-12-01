@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StudentsService } from './students.service';
@@ -19,11 +20,11 @@ import { Student } from './student.entity';
 @Controller('students')
 @UseGuards(JwtAuthGuard)
 export class StudentsController {
-  constructor(private studentsService: StudentsService) {}
+  constructor(private studentsService: StudentsService) { }
 
   @Get()
-  async findAll(@Query('classId') classId?: string) {
-    return this.studentsService.findAll(classId);
+  async findAll(@Query('classId') classId: string, @Req() req: any) {
+    return this.studentsService.findAll(classId, req.user.id);
   }
 
   @Get(':id')

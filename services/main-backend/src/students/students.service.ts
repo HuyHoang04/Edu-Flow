@@ -10,15 +10,19 @@ export class StudentsService {
   constructor(
     @InjectRepository(Student)
     public studentsRepository: Repository<Student>,
-  ) {}
+  ) { }
 
-  async findAll(classId?: string): Promise<Student[]> {
+  async findAll(classId?: string, teacherId?: string): Promise<Student[]> {
     const query = this.studentsRepository
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.class', 'class');
 
     if (classId) {
       query.where('student.classId = :classId', { classId });
+    }
+
+    if (teacherId) {
+      query.andWhere('class.teacherId = :teacherId', { teacherId });
     }
 
     return query.getMany();

@@ -20,7 +20,10 @@ export class Class {
   @Column()
   teacherId: string;
 
-  @Column()
+  @Column({ nullable: true })
+  code: string;
+
+  @Column({ nullable: true })
   subject: string;
 
   @Column()

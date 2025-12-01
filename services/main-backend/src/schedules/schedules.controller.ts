@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,11 +17,11 @@ import { Schedule } from './schedule.entity';
 @Controller('schedules')
 @UseGuards(JwtAuthGuard)
 export class SchedulesController {
-  constructor(private schedulesService: SchedulesService) {}
+  constructor(private schedulesService: SchedulesService) { }
 
   @Get()
-  async findAll(@Query('classId') classId?: string) {
-    return this.schedulesService.findAll(classId);
+  async findAll(@Query('classId') classId: string, @Req() req: any) {
+    return this.schedulesService.findAll(classId, req.user.id);
   }
 
   @Get('class/:classId')

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import axios from "axios";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -11,6 +12,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     access_type: "offline",
                     response_type: "code",
                 },
+            },
+        }),
+        Credentials({
+            name: "Credentials",
+            credentials: {
+                email: { label: "Email", type: "email" },
+                password: { label: "Password", type: "password" },
+            },
+            async authorize(credentials) {
+                try {
+                    const apiUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL;
+                    const response = await axios.post(
+                        `${apiUrl}/auth/login-credentials`,
+                        {
+                            email: credentials.email,
+                            password: credentials.password,
+                        }
+                    );
+
+                    if (response.data && response.data.access_token) {
+                        return {
+                            ...response.data.user,
+                            backendToken: response.data.access_token,
+                            role: response.data.user.role,
+                        };
+                    }
+                    return null;
+                } catch (error) {
+                    console.error("Error signing in with credentials:", error);
+                    return null;
+                }
             },
         }),
     ],

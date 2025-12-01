@@ -18,11 +18,11 @@ import { Public } from '../auth/decorators/public.decorator';
 @Controller('exams')
 @UseGuards(JwtAuthGuard)
 export class ExamsController {
-  constructor(private examsService: ExamsService) {}
+  constructor(private examsService: ExamsService) { }
 
   @Get()
-  async findAll(@Query('classId') classId?: string) {
-    return this.examsService.findAll(classId);
+  async findAll(@Query('classId') classId: string, @Req() req: any) {
+    return this.examsService.findAll(classId, req.user.id);
   }
 
   @Get(':id')

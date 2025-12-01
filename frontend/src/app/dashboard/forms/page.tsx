@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, Plus, Loader2, Trash2, ExternalLink, BarChart3 } from "lucide-react";
+import { FileText, Plus, Loader2, Trash2, ExternalLink, BarChart3, Edit } from "lucide-react";
 import { Form, FormService } from "@/services/form.service";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -136,7 +136,12 @@ export default function FormsPage() {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-3 gap-2">
+                                <Button variant="outline" size="sm" className="w-full" asChild>
+                                    <Link href={`/dashboard/forms/${form.id}/edit`}>
+                                        <Edit className="h-3 w-3 mr-1" /> Sửa
+                                    </Link>
+                                </Button>
                                 <Button variant="outline" size="sm" className="w-full" asChild>
                                     <Link href={`/forms/public/${form.id}`} target="_blank">
                                         <ExternalLink className="h-3 w-3 mr-1" /> Xem

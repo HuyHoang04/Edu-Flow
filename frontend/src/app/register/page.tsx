@@ -6,14 +6,52 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function RegisterPage() {
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
-    const handleRegister = async () => {
+    const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         setIsLoading(true);
-        // Simulate registration
-        setTimeout(() => setIsLoading(false), 2000);
+
+        const formData = new FormData(e.currentTarget);
+        const firstName = formData.get("firstName");
+        const lastName = formData.get("lastName");
+        const email = formData.get("email");
+        const password = formData.get("password");
+
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            await axios.post(`${apiUrl}/auth/register`, {
+                firstName,
+                lastName,
+                email,
+                password,
+            });
+
+            // Auto login after register
+            const result = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                console.error("Login failed after register:", result.error);
+                router.push("/login");
+            } else {
+                router.push("/dashboard");
+            }
+        } catch (error) {
+            console.error("Registration failed:", error);
+            // TODO: Show error toast
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -32,29 +70,31 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="firstName">Họ</Label>
-                                <Input id="firstName" placeholder="Nguyễn" />
+                        <form onSubmit={handleRegister} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="firstName">Họ</Label>
+                                    <Input id="firstName" name="firstName" placeholder="Nguyễn" required disabled={isLoading} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastName">Tên</Label>
+                                    <Input id="lastName" name="lastName" placeholder="Văn A" required disabled={isLoading} />
+                                </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="lastName">Tên</Label>
-                                <Input id="lastName" placeholder="Văn A" />
+                                <Label htmlFor="email">Email</Label>
+                                <Input id="email" name="email" placeholder="name@example.com" type="email" required disabled={isLoading} />
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" placeholder="name@example.com" type="email" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Mật khẩu</Label>
-                            <Input id="password" type="password" />
-                        </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Mật khẩu</Label>
+                                <Input id="password" name="password" type="password" required disabled={isLoading} />
+                            </div>
 
-                        <Button className="w-full h-11" onClick={handleRegister} disabled={isLoading}>
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Đăng ký tài khoản
-                        </Button>
+                            <Button className="w-full h-11" type="submit" disabled={isLoading}>
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Đăng ký tài khoản
+                            </Button>
+                        </form>
 
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
@@ -67,7 +107,7 @@ export default function RegisterPage() {
                             </div>
                         </div>
 
-                        <Button variant="outline" className="w-full" disabled>
+                        <Button variant="outline" className="w-full" onClick={() => signIn("google", { callbackUrl: "/dashboard" })} disabled={isLoading}>
                             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                                 <path
                                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

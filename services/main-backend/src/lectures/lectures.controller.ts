@@ -6,18 +6,22 @@ import {
   Param,
   Res,
   NotFoundException,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { LecturesService } from './lectures.service';
 import type { Response } from 'express';
 import * as fs from 'fs';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('lectures')
+@UseGuards(JwtAuthGuard)
 export class LecturesController {
   constructor(private readonly lecturesService: LecturesService) { }
 
   @Get()
-  async findAll() {
-    return this.lecturesService.findAll();
+  async findAll(@Req() req: any) {
+    return this.lecturesService.findAll(req.user.id);
   }
 
   @Get(':id')
@@ -36,8 +40,9 @@ export class LecturesController {
       duration_minutes?: number;
       detail_level?: string;
     },
+    @Req() req: any,
   ) {
-    return this.lecturesService.generateLecture(body.topic, body);
+    return this.lecturesService.generateLecture(body.topic, { ...body, createdBy: req.user.id });
   }
 
   @Post(':id/export/pptx')

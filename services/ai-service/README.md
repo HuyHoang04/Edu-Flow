@@ -29,7 +29,7 @@ AI microservice supporting text generation and grading via OpenAI, Gemini, or Ph
 ## Run
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8001
 ```
 
 ## API Endpoints

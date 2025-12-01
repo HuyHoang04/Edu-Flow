@@ -7,6 +7,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,8 +23,8 @@ export class ReportsController {
   ) { }
 
   @Get()
-  async findAll(@Query('generatedBy') generatedBy?: string) {
-    return this.reportsService.findAll(generatedBy);
+  async findAll(@Req() req: any) {
+    return this.reportsService.findAll(req.user.id);
   }
 
   @Get(':id')
@@ -38,14 +39,14 @@ export class ReportsController {
       classId: string;
       startDate: string;
       endDate: string;
-      generatedBy: string;
     },
+    @Req() req: any,
   ) {
     return this.reportsService.generateAttendanceReport(
       data.classId,
       new Date(data.startDate),
       new Date(data.endDate),
-      data.generatedBy,
+      req.user.id,
     );
   }
 
@@ -56,16 +57,17 @@ export class ReportsController {
       classId: string;
       startDate: string;
       endDate: string;
-      generatedBy: string;
       email: string;
     },
+    @Req() req: any,
   ) {
+    const userId = req.user.id;
     // 1. Generate Report
     const report = await this.reportsService.generateAttendanceReport(
       data.classId,
       new Date(data.startDate),
       new Date(data.endDate),
-      data.generatedBy,
+      userId,
     );
 
     // 2. Format Email Body
@@ -108,7 +110,7 @@ export class ReportsController {
       recipients: [data.email],
       subject,
       body,
-      sentBy: data.generatedBy,
+      sentBy: userId,
     });
 
     return { message: 'Report generated and emailed successfully', reportId: report.id };
@@ -116,31 +118,34 @@ export class ReportsController {
 
   @Post('exam-results')
   async generateExamResultsReport(
-    @Body() data: { examId: string; generatedBy: string },
+    @Body() data: { examId: string },
+    @Req() req: any,
   ) {
     return this.reportsService.generateExamResultsReport(
       data.examId,
-      data.generatedBy,
+      req.user.id,
     );
   }
 
   @Post('class-performance')
   async generateClassPerformanceReport(
-    @Body() data: { classId: string; generatedBy: string },
+    @Body() data: { classId: string },
+    @Req() req: any,
   ) {
     return this.reportsService.generateClassPerformanceReport(
       data.classId,
-      data.generatedBy,
+      req.user.id,
     );
   }
 
   @Post('student-progress')
   async generateStudentProgressReport(
-    @Body() data: { studentId: string; generatedBy: string },
+    @Body() data: { studentId: string },
+    @Req() req: any,
   ) {
     return this.reportsService.generateStudentProgressReport(
       data.studentId,
-      data.generatedBy,
+      req.user.id,
     );
   }
 

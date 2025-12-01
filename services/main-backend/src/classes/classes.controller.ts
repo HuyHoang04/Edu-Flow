@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ClassesService } from './classes.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,11 +17,12 @@ import { Class } from './class.entity';
 @Controller('classes')
 @UseGuards(JwtAuthGuard)
 export class ClassesController {
-  constructor(private classesService: ClassesService) {}
+  constructor(private classesService: ClassesService) { }
 
   @Get()
-  async findAll(@Query('teacherId') teacherId?: string) {
-    return this.classesService.findAll(teacherId);
+  async findAll(@Query('teacherId') teacherId: string, @Req() req: any) {
+    // Prioritize authenticated user, but allow admin override if needed (omitted for now)
+    return this.classesService.findAll(req.user.id);
   }
 
   @Get(':id')
@@ -29,8 +31,11 @@ export class ClassesController {
   }
 
   @Post()
-  async create(@Body() classData: Partial<Class>) {
-    return this.classesService.create(classData);
+  async create(@Body() classData: Partial<Class>, @Req() req: any) {
+    return this.classesService.create({
+      ...classData,
+      teacherId: req.user.id,
+    });
   }
 
   @Put(':id')

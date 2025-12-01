@@ -3,17 +3,21 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Class } from '../classes/class.entity';
+import { Student } from '../students/student.entity';
 
 @Entity('attendance')
 export class Attendance {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   studentId: string;
 
-  @Column()
+  @Column({ nullable: true })
   classId: string;
 
   @Column({ nullable: true })
@@ -27,6 +31,14 @@ export class Attendance {
 
   @Column({ type: 'text', nullable: true })
   note: string;
+
+  @ManyToOne(() => Class)
+  @JoinColumn({ name: 'classId' })
+  class: Class;
+
+  @ManyToOne(() => Student)
+  @JoinColumn({ name: 'studentId' })
+  student: Student;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
