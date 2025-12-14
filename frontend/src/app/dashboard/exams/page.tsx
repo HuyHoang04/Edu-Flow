@@ -1,6 +1,7 @@
 "use client";
 
 import { ClipboardList, Plus, Loader2, Calendar as CalendarIcon, Clock, ArrowLeft, CheckSquare, Trash2, Search, Link2, Save, AlertCircle, CheckCircle, BrainCircuit } from "lucide-react";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Exam, ExamService } from "@/services/exam.service";
@@ -152,7 +153,7 @@ export default function ExamsPage() {
                 fetchQuestions(); // Refresh available questions if we saved to bank
             }
 
-            alert("Câu hỏi đã được tạo và thêm vào đề thi!");
+            toast.success("Câu hỏi đã được tạo và thêm vào đề thi!");
             setCreateQuestionOpen(false);
             setNewQuestionData({
                 content: "",
@@ -165,7 +166,7 @@ export default function ExamsPage() {
             });
         } catch (error) {
             console.error("Failed to create question:", error);
-            alert("Tạo câu hỏi thất bại.");
+            toast.error("Tạo câu hỏi thất bại.");
         } finally {
             setCreatingQuestion(false);
         }
@@ -176,7 +177,7 @@ export default function ExamsPage() {
         setCreating(true);
         try {
             await ExamService.create(newExam);
-            alert("Exam created successfully!");
+            toast.success("Tạo đề thi thành công!");
             setOpen(false);
             setNewExam({
                 title: "",
@@ -192,7 +193,7 @@ export default function ExamsPage() {
             fetchExams();
         } catch (error) {
             console.error("Failed to create exam:", error);
-            alert("Failed to create exam.");
+            toast.error("Tạo đề thi thất bại.");
         } finally {
             setCreating(false);
         }
@@ -200,7 +201,7 @@ export default function ExamsPage() {
 
     const handleSaveDraft = async () => {
         if (!newExam.title) {
-            alert("Vui lòng nhập tiêu đề đề thi!");
+            toast.error("Vui lòng nhập tiêu đề đề thi!");
             return;
         }
         setCreating(true);
@@ -215,7 +216,7 @@ export default function ExamsPage() {
                 questions: newExam.questions || [],
                 deadline: newExam.deadline ? new Date(newExam.deadline).toISOString() : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
             });
-            alert("Đã lưu nháp!");
+            toast.success("Đã lưu nháp!");
             setOpen(false);
             setNewExam({
                 title: "",
@@ -231,7 +232,7 @@ export default function ExamsPage() {
             fetchExams();
         } catch (error) {
             console.error("Failed to save draft:", error);
-            alert("Lưu nháp thất bại.");
+            toast.error("Lưu nháp thất bại.");
         } finally {
             setCreating(false);
         }
@@ -257,10 +258,10 @@ export default function ExamsPage() {
             setAddQuestionOpen(false);
             setSelectedQuestionsToAdd([]);
             fetchExams(); // Refresh exams list
-            alert("Questions added successfully!");
+            toast.success("Đã thêm câu hỏi thành công!");
         } catch (error) {
             console.error("Failed to add questions:", error);
-            alert("Failed to add questions.");
+            toast.error("Thêm câu hỏi thất bại.");
         }
     };
 
@@ -279,7 +280,7 @@ export default function ExamsPage() {
             fetchExams(); // Refresh exams list
         } catch (error) {
             console.error("Failed to remove question:", error);
-            alert("Failed to remove question.");
+            toast.error("Xóa câu hỏi thất bại.");
         }
     };
 
@@ -329,7 +330,7 @@ export default function ExamsPage() {
                             onClick={() => {
                                 const link = `${window.location.origin}/exam-entry/${selectedExam.id}`;
                                 navigator.clipboard.writeText(link);
-                                alert("Đã sao chép link bài thi!");
+                                toast.success("Đã sao chép link bài thi!");
                             }}
                         >
                             <Link2 className="h-4 w-4" />
@@ -343,10 +344,10 @@ export default function ExamsPage() {
                                     const updatedExam = await ExamService.getById(selectedExam.id);
                                     setSelectedExam(updatedExam);
                                     fetchExams(); // Refresh exams list
-                                    alert("Đã lưu đề thi!");
+                                    toast.success("Đã lưu đề thi!");
                                 } catch (error) {
                                     console.error("Failed to save exam:", error);
-                                    alert("Lưu thất bại!");
+                                    toast.error("Lưu thất bại!");
                                 }
                             }}
                         >

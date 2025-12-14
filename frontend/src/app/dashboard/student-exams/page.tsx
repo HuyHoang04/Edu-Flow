@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ExamService, Exam } from "@/services/exam.service";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +35,7 @@ export default function StudentExamsPage() {
             router.push(`/dashboard/student-exams/${attempt.id}`);
         } catch (error) {
             console.error("Failed to start exam:", error);
-            alert("Không thể bắt đầu bài thi. Vui lòng thử lại.");
+            toast.error("Không thể bắt đầu bài thi. Vui lòng thử lại.");
         }
     };
 
@@ -80,7 +81,7 @@ export default function StudentExamsPage() {
                                 <div className="space-y-2">
                                     <div className="flex items-center text-sm">
                                         <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <span>Thời gian: {exam.duration} phút</span>
+                                        <span>Thời gian: {exam.durationMinutes} phút</span>
                                     </div>
                                     <div className="flex items-center text-sm">
                                         <Target className="h-4 w-4 mr-2 text-muted-foreground" />

@@ -4,25 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FormService } from "@/services/form.service";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Download, FileText } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, ArrowLeft, Download, BarChart3, Users, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell
-} from "recharts";
-import { saveAs } from "file-saver";
-
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 export default function FormResultsPage() {
     const params = useParams();
@@ -30,46 +22,72 @@ export default function FormResultsPage() {
     const id = params.id as string;
 
     const [stats, setStats] = useState<any>(null);
+    const [responses, setResponses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        loadStats();
+        loadData();
     }, [id]);
 
-    const loadStats = async () => {
+    const loadData = async () => {
         try {
             setIsLoading(true);
-            const data = await FormService.getStats(id);
-            setStats(data);
+            const [statsData, responsesData] = await Promise.all([
+                FormService.getStats(id),
+                FormService.getResponses(id)
+            ]);
+            setStats(statsData);
+            setResponses(responsesData);
         } catch (error) {
-            console.error("Failed to load stats", error);
-            toast.error("Không thể tải thống kê");
+            console.error("Failed to load results", error);
+            toast.error("Không thể tải kết quả biểu mẫu");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleExport = async () => {
-        try {
-            const data = await FormService.getResponses(id);
+    const handleExport = () => {
+        // Simple CSV export
+        if (responses.length === 0) return;
 
-            // Convert to CSV
-            if (data.length === 0) {
-                toast.warning("Chưa có dữ liệu để xuất");
-                return;
-            }
+        // Get all unique headers (questions)
+        const headers = ["Email", "Tên", "Thời gian nộp"];
+        const fieldIds = Object.keys(stats.fieldStats);
+        fieldIds.forEach(fid => {
+            headers.push(stats.fieldStats[fid].fieldLabel);
+        });
 
-            // Get all unique keys (headers)
-            const headers = ["ID", "Email", "Tên", "Thời gian nộp"];
-            // We assume all responses follow the form structure, but let's just dump the answers JSON for now or try to flatten it if possible.
-            // A simple approach: JSON export
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            saveAs(blob, `form-results-${id}.json`);
-            toast.success("Đã xuất dữ liệu thành công");
-        } catch (error) {
-            console.error("Export failed", error);
-            toast.error("Xuất dữ liệu thất bại");
-        }
+        // Create CSV content
+        let csvContent = headers.join(",") + "\n";
+
+        responses.forEach(r => {
+            const row = [
+                `"${r.respondentEmail}"`,
+                `"${r.respondentName || ''}"`,
+                `"${new Date(r.submittedAt).toLocaleString('vi-VN')}"`
+            ];
+
+            fieldIds.forEach(fid => {
+                let answer = r.answers[fid];
+                if (Array.isArray(answer)) answer = answer.join("; ");
+                if (answer === undefined || answer === null) answer = "";
+                // Escape quotes
+                answer = String(answer).replace(/"/g, '""');
+                row.push(`"${answer}"`);
+            });
+
+            csvContent += row.join(",") + "\n";
+        });
+
+        // Download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `ket-qua-${stats.title}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     if (isLoading) {
@@ -83,74 +101,139 @@ export default function FormResultsPage() {
     if (!stats) return null;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 pb-20">
+        <div className="space-y-6 pb-20">
             {/* Header */}
-            <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/forms")}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold">Kết quả: {stats.title}</h1>
-                        <p className="text-sm text-muted-foreground">{stats.totalResponses} câu trả lời</p>
+                        <h1 className="text-2xl font-bold">Kết quả: {stats.title}</h1>
+                        <p className="text-muted-foreground">Tổng hợp phản hồi từ người dùng</p>
                     </div>
                 </div>
-                <Button onClick={handleExport} variant="outline">
+                <Button onClick={handleExport} disabled={responses.length === 0}>
                     <Download className="mr-2 h-4 w-4" />
-                    Xuất dữ liệu (JSON)
+                    Xuất Excel (CSV)
                 </Button>
             </div>
 
-            <div className="grid gap-6">
-                {Object.entries(stats.fieldStats).map(([fieldId, fieldStat]: [string, any]) => (
-                    <Card key={fieldId}>
-                        <CardHeader>
-                            <CardTitle className="text-lg font-medium">{fieldStat.fieldLabel}</CardTitle>
-                            <CardDescription>
-                                {fieldStat.totalAnswers} câu trả lời ({fieldStat.responseRate.toFixed(1)}%)
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {/* Charts for Choice Questions */}
-                            {["radio", "select", "checkbox"].includes(fieldStat.fieldType) && fieldStat.distribution && (
-                                <div className="h-[300px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart
-                                            data={Object.entries(fieldStat.distribution).map(([name, value]) => ({ name, value }))}
-                                            layout="vertical"
-                                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                                        >
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis type="number" allowDecimals={false} />
-                                            <YAxis dataKey="name" type="category" width={150} />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Bar dataKey="value" name="Số lượng" fill="#8884d8">
-                                                {Object.entries(fieldStat.distribution).map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            )}
+            {/* Summary Cards */}
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Tổng phản hồi</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.totalResponses}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Phản hồi mới nhất</CardTitle>
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {responses.length > 0
+                                ? new Date(responses[0].submittedAt).toLocaleDateString('vi-VN')
+                                : "--/--"}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Tỷ lệ hoàn thành</CardTitle>
+                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">100%</div>
+                    </CardContent>
+                </Card>
+            </div>
 
-                            {/* Text Responses Preview */}
-                            {["text", "textarea", "date"].includes(fieldStat.fieldType) && (
-                                <div className="bg-muted/30 rounded-md p-4 max-h-[200px] overflow-y-auto">
-                                    <div className="flex items-center text-sm text-muted-foreground mb-2">
-                                        <FileText className="h-4 w-4 mr-2" />
-                                        Dữ liệu dạng văn bản (Xem chi tiết trong file xuất)
-                                    </div>
-                                    <p className="text-sm italic text-muted-foreground">
-                                        Biểu đồ không khả dụng cho loại câu hỏi này.
-                                    </p>
+            {/* Field Stats */}
+            <div className="grid gap-6 md:grid-cols-2">
+                {Object.entries(stats.fieldStats).map(([fieldId, stat]: [string, any]) => (
+                    <Card key={fieldId} className="flex flex-col">
+                        <CardHeader>
+                            <CardTitle className="text-base font-medium leading-relaxed">
+                                {stat.fieldLabel}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1">
+                            {stat.distribution ? (
+                                <div className="space-y-2">
+                                    {Object.entries(stat.distribution).map(([option, count]: [string, any]) => (
+                                        <div key={option} className="space-y-1">
+                                            <div className="flex justify-between text-sm">
+                                                <span>{option}</span>
+                                                <span className="font-medium">
+                                                    {count} ({Math.round((count / stat.totalAnswers) * 100)}%)
+                                                </span>
+                                            </div>
+                                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary"
+                                                    style={{ width: `${(count / stat.totalAnswers) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-sm text-muted-foreground">
+                                    {stat.totalAnswers} câu trả lời văn bản
                                 </div>
                             )}
                         </CardContent>
                     </Card>
                 ))}
             </div>
+
+            {/* Detailed Responses Table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Danh sách chi tiết</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Thời gian</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Tên</TableHead>
+                                    <TableHead className="text-right">Hành động</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {responses.map((response) => (
+                                    <TableRow key={response.id}>
+                                        <TableCell>
+                                            {new Date(response.submittedAt).toLocaleString('vi-VN')}
+                                        </TableCell>
+                                        <TableCell>{response.respondentEmail}</TableCell>
+                                        <TableCell>{response.respondentName || "Ẩn danh"}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm">Xem chi tiết</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {responses.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                            Chưa có phản hồi nào
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

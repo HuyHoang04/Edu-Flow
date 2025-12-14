@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import { ExamService, ExamAttempt, Exam } from "@/services/exam.service";
 import { Question } from "@/services/question.service";
@@ -55,7 +56,7 @@ export default function ExamTakingPage() {
                 }
             } catch (error) {
                 console.error("Failed to load exam:", error);
-                alert("Không thể tải bài thi. Vui lòng thử lại.");
+                toast.error("Không thể tải bài thi. Vui lòng thử lại.");
                 router.push("/dashboard/student-exams");
             } finally {
                 setLoading(false);
@@ -103,14 +104,14 @@ export default function ExamTakingPage() {
             router.push(`/dashboard/student-exams/${attemptId}/result`);
         } catch (error) {
             console.error("Failed to submit exam:", error);
-            alert("Không thể nộp bài. Vui lòng thử lại.");
+            toast.error("Không thể nộp bài. Vui lòng thử lại.");
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleTimeExpired = useCallback(() => {
-        alert("Hết thời gian! Bài thi sẽ được nộp tự động.");
+        toast.warning("Hết thời gian! Bài thi sẽ được nộp tự động.");
         handleSubmit();
     }, [handleSubmit]);
 
@@ -225,7 +226,7 @@ export default function ExamTakingPage() {
                                     className="w-full gap-2"
                                     onClick={() => {
                                         localStorage.setItem(`exam-${attemptId}`, JSON.stringify(Array.from(answers.entries())));
-                                        alert("Đã lưu nháp!");
+                                        toast.success("Đã lưu nháp!");
                                     }}
                                 >
                                     <Save className="h-4 w-4" />

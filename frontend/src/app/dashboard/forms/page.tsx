@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, Plus, Loader2, Trash2, ExternalLink, BarChart3, Edit } from "lucide-react";
+import { FileText, Plus, Loader2, Trash2, ExternalLink, BarChart3, Edit, Copy } from "lucide-react";
+
+// ... (inside component)
+
+const handleCopyLink = (id: string) => {
+    const url = `${window.location.origin}/forms/public/${id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Đã sao chép liên kết vào bộ nhớ tạm");
+};
+
+// ... (inside return)
+
 import { Form, FormService } from "@/services/form.service";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -83,6 +94,12 @@ export default function FormsPage() {
         }
     };
 
+    const handleCopyLink = (id: string) => {
+        const url = `${window.location.origin}/forms/public/${id}`;
+        navigator.clipboard.writeText(url);
+        toast.success("Đã sao chép liên kết vào bộ nhớ tạm");
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -136,19 +153,24 @@ export default function FormsPage() {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2">
-                                <Button variant="outline" size="sm" className="w-full" asChild>
+                            <div className="grid grid-cols-4 gap-2">
+                                <Button variant="outline" size="sm" className="w-full p-0" asChild title="Chỉnh sửa">
                                     <Link href={`/dashboard/forms/${form.id}/edit`}>
-                                        <Edit className="h-3 w-3 mr-1" /> Sửa
+                                        <Edit className="h-4 w-4" />
                                     </Link>
                                 </Button>
-                                <Button variant="outline" size="sm" className="w-full" asChild>
+                                <Button variant="outline" size="sm" className="w-full p-0" asChild title="Xem trước">
                                     <Link href={`/forms/public/${form.id}`} target="_blank">
-                                        <ExternalLink className="h-3 w-3 mr-1" /> Xem
+                                        <ExternalLink className="h-4 w-4" />
                                     </Link>
                                 </Button>
-                                <Button variant="outline" size="sm" className="w-full">
-                                    <BarChart3 className="h-3 w-3 mr-1" /> Kết quả
+                                <Button variant="outline" size="sm" className="w-full p-0" onClick={() => handleCopyLink(form.id)} title="Sao chép liên kết">
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" size="sm" className="w-full p-0" asChild title="Xem kết quả">
+                                    <Link href={`/dashboard/forms/${form.id}/results`}>
+                                        <BarChart3 className="h-4 w-4" />
+                                    </Link>
                                 </Button>
                             </div>
                         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import { ExamService, ExamAttempt, Exam } from "@/services/exam.service";
 import { ExamTimer } from "@/components/exam/exam-timer";
@@ -56,7 +57,7 @@ export default function ExamTakingPage() {
                 }
             } catch (error) {
                 console.error("Failed to load exam:", error);
-                alert("Không thể tải bài thi. Vui lòng đăng nhập lại.");
+                toast.error("Không thể tải bài thi. Vui lòng đăng nhập lại.");
                 router.push(`/exam-entry/${examId}`);
             } finally {
                 setLoading(false);
@@ -105,18 +106,18 @@ export default function ExamTakingPage() {
 
             // Redirect to results (we might need a public result page too)
             // For now, just show alert or redirect to entry page with success message
-            alert("Nộp bài thành công!");
+            toast.success("Nộp bài thành công!");
             router.push(`/exam-entry/${examId}`);
         } catch (error) {
             console.error("Failed to submit exam:", error);
-            alert("Không thể nộp bài. Vui lòng thử lại.");
+            toast.error("Không thể nộp bài. Vui lòng thử lại.");
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleTimeExpired = useCallback(() => {
-        alert("Hết thời gian! Bài thi sẽ được nộp tự động.");
+        toast.warning("Hết thời gian! Bài thi sẽ được nộp tự động.");
         handleSubmit();
     }, [handleSubmit]);
 
@@ -232,7 +233,7 @@ export default function ExamTakingPage() {
                                     onClick={() => {
                                         if (attempt) {
                                             localStorage.setItem(`exam-${attempt.id}`, JSON.stringify(Array.from(answers.entries())));
-                                            alert("Đã lưu nháp!");
+                                            toast.success("Đã lưu nháp!");
                                         }
                                     }}
                                 >

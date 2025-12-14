@@ -1,6 +1,7 @@
 "use client";
 
 import { FileQuestion, Plus, Search, Loader2, Trash2, Edit, Folder, ArrowLeft, BookOpen } from "lucide-react";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { Question, QuestionService } from "@/services/question.service";
 import {
@@ -85,7 +86,7 @@ export default function QuestionsPage() {
             }
 
             await QuestionService.create(questionData);
-            alert("Question created successfully!");
+            toast.success("Tạo câu hỏi thành công!");
             setOpen(false);
             setNewQuestion({
                 content: "",
@@ -99,7 +100,7 @@ export default function QuestionsPage() {
             fetchQuestions();
         } catch (error) {
             console.error("Failed to create question:", error);
-            alert("Failed to create question.");
+            toast.error("Tạo câu hỏi thất bại.");
         } finally {
             setCreating(false);
         }
@@ -112,7 +113,7 @@ export default function QuestionsPage() {
             fetchQuestions();
         } catch (error) {
             console.error("Failed to delete question:", error);
-            alert("Failed to delete question.");
+            toast.error("Xóa câu hỏi thất bại.");
         }
     };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import { ExamService, ExamResult } from "@/services/exam.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +25,7 @@ export default function ExamResultPage() {
                 setResult(data);
             } catch (error) {
                 console.error("Failed to load result:", error);
-                alert("Không thể tải kết quả. Vui lòng thử lại.");
+                toast.error("Không thể tải kết quả. Vui lòng thử lại.");
                 router.push("/dashboard/student-exams");
             } finally {
                 setLoading(false);

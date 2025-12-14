@@ -4,18 +4,32 @@ import { ChevronDown } from "lucide-react"
 
 const SelectContext = React.createContext<any>(null);
 
-const Select = ({ children, defaultValue, onValueChange, ...props }: any) => {
+const Select = ({ children, defaultValue, value: controlledValue, onValueChange, ...props }: any) => {
     const [open, setOpen] = React.useState(false);
-    const [value, setValue] = React.useState(defaultValue);
+    const [internalValue, setInternalValue] = React.useState(defaultValue);
+    const [labels, setLabels] = React.useState<Map<string, any>>(new Map());
+
+    const isControlled = controlledValue !== undefined;
+    const value = isControlled ? controlledValue : internalValue;
 
     const handleSelect = (newValue: string) => {
-        setValue(newValue);
+        if (!isControlled) {
+            setInternalValue(newValue);
+        }
         if (onValueChange) onValueChange(newValue);
         setOpen(false);
     };
 
+    const registerLabel = React.useCallback((value: string, label: any) => {
+        setLabels(prev => {
+            const newLabels = new Map(prev);
+            newLabels.set(value, label);
+            return newLabels;
+        });
+    }, []);
+
     return (
-        <SelectContext.Provider value={{ value, onSelect: handleSelect, open, setOpen }}>
+        <SelectContext.Provider value={{ value, onSelect: handleSelect, open, setOpen, labels, registerLabel }}>
             <div className="relative inline-block w-full" {...props}>
                 {children}
             </div>
@@ -39,15 +53,20 @@ const SelectTrigger = ({ className, children, ...props }: any) => {
 }
 
 const SelectValue = ({ placeholder }: any) => {
-    const { value } = React.useContext(SelectContext);
-    return <span className="pointer-events-none">{value || placeholder}</span>
+    const { value, labels } = React.useContext(SelectContext);
+    const label = labels.get(value);
+    return <span className="pointer-events-none truncate">{label || value || placeholder}</span>
 }
 
 const SelectContent = ({ className, children, ...props }: any) => {
     const { open } = React.useContext(SelectContext);
-    if (!open) return null;
+    // Always render children to allow registration, but hide if not open
     return (
-        <div className={cn("absolute z-50 min-w-[8rem] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80 mt-1 bg-white dark:bg-slate-950", className)} {...props}>
+        <div className={cn(
+            "absolute z-50 min-w-[8rem] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80 mt-1 bg-white dark:bg-slate-950",
+            !open && "hidden",
+            className
+        )} {...props}>
             <div className="p-1">
                 {children}
             </div>
@@ -56,7 +75,12 @@ const SelectContent = ({ className, children, ...props }: any) => {
 }
 
 const SelectItem = ({ className, children, value, ...props }: any) => {
-    const { onSelect } = React.useContext(SelectContext);
+    const { onSelect, registerLabel } = React.useContext(SelectContext);
+
+    React.useEffect(() => {
+        registerLabel(value, children);
+    }, [value, children, registerLabel]);
+
     return (
         <div
             className={cn("relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-accent hover:text-accent-foreground cursor-pointer", className)}

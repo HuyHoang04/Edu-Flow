@@ -10,6 +10,16 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(async (config) => {
     const session = await getSession();
+
+    // Prioritize student token for exam pages
+    if (typeof window !== "undefined" && (window.location.pathname.startsWith("/exam-taking") || window.location.pathname.startsWith("/exam-entry"))) {
+        const studentToken = sessionStorage.getItem("student_token");
+        if (studentToken) {
+            config.headers.Authorization = `Bearer ${studentToken}`;
+            return config;
+        }
+    }
+
     if (session && (session as any).accessToken) {
         config.headers.Authorization = `Bearer ${(session as any).accessToken}`;
     } else if (typeof window !== "undefined") {
