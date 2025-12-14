@@ -1,5 +1,5 @@
 import { LucideIcon } from "lucide-react";
-import { Node } from "@xyflow/react";
+import { Node, Edge } from "@xyflow/react";
 
 export type NodeCategory = "Trigger" | "Action" | "Logic" | "AI" | "Data";
 
@@ -43,3 +43,21 @@ export interface NodeData extends Record<string, unknown> {
 }
 
 export type WorkflowNode = Node<NodeData>;
+
+export interface WorkflowTrigger {
+    type: string;
+    config: Record<string, any>;
+}
+
+export interface Workflow {
+    id: string;
+    name: string;
+    description?: string;
+    trigger?: WorkflowTrigger;
+    nodes: WorkflowNode[];
+    edges: Edge[];
+    startNodeId?: string;
+    isActive: boolean;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
 import { NodePalette } from "@/components/workflow/NodePalette";
 import { NODE_REGISTRY } from "@/components/workflow/nodeRegistry";
@@ -460,7 +460,9 @@ function WorkflowBuilderContent() {
 export default function WorkflowBuilderPage() {
     return (
         <ReactFlowProvider>
-            <WorkflowBuilderContent />
+            <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+                <WorkflowBuilderContent />
+            </Suspense>
         </ReactFlowProvider>
     );
 }

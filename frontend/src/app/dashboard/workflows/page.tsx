@@ -209,9 +209,6 @@ export default function WorkflowsPage() {
                                             </div>
                                             <div>
                                                 <h3 className="font-semibold line-clamp-1">{template.name}</h3>
-                                                <span className="text-xs text-muted-foreground capitalize bg-muted px-2 py-0.5 rounded-full">
-                                                    {template.category || "General"}
-                                                </span>
                                             </div>
                                         </div>
                                         <p className="text-sm text-muted-foreground line-clamp-3 mb-4 h-[60px]">
