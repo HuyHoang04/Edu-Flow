@@ -50,6 +50,9 @@ export class ExamsController {
 
   @Post(':id/start')
   async startExam(@Param('id') examId: string, @Req() req: any) {
+    if (req.user.role !== 'student') {
+      throw new Error('Only students can start exams');
+    }
     return this.examsService.startExam(examId, req.user.id);
   }
 

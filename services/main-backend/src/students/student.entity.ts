@@ -17,10 +17,10 @@ export class Student {
   @Column()
   name: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ nullable: true })
   code: string;
 
-  @Column({ unique: true })
+  @Column({ nullable: true })
   email: string;
 
   @Column({ nullable: true })

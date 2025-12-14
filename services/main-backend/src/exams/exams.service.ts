@@ -171,50 +171,8 @@ export class ExamsService {
     const savedResult = await this.resultsRepository.save(result);
     console.log('[ExamsService] Result saved:', savedResult.id);
 
-    // Prepare context with actual student answers
-    const answersMap = new Map(
-      attempt.answers.map((a) => [a.questionId, a.answer]),
-    );
-    const questionsWithAnswers = questions.map((q) => ({
-      questionId: q.id,
-      questionContent: q.content,
-      questionType: q.type,
-      studentAnswer: answersMap.get(q.id) || '',
-      rubric: q.correctAnswer,
-      maxScore: q.points,
-    }));
-
-    const workflowContext = {
-      attemptId: attempt.id,
-      examId: exam.id,
-      studentId: attempt.studentId,
-      student: student, // Pass full student object
-      resultId: savedResult.id,
-      currentScore: savedResult.score,
-      questions: questionsWithAnswers,
-      questionContent:
-        questionsWithAnswers.find((q) => q.questionType === 'essay')
-          ?.studentAnswer || '',
-      rubric:
-        questionsWithAnswers.find((q) => q.questionType === 'essay')?.rubric ||
-        '',
-      maxScore:
-        questionsWithAnswers.find((q) => q.questionType === 'essay')
-          ?.maxScore || 0,
-    };
-
-    console.log(
-      '[ExamsService] Triggering workflow with context:',
-      JSON.stringify(workflowContext, null, 2),
-    );
-
-    // Trigger workflow asynchronously (fire and forget)
-    this.workflowsService
-      .triggerWorkflowsByEvent('EXAM_SUBMITTED', workflowContext)
-      .then(() => console.log('[ExamsService] Workflow trigger completed'))
-      .catch((error) =>
-        console.error('[ExamsService] Workflow trigger error:', error),
-      );
+    // Workflow trigger removed as per user request for standard grading
+    console.log('[ExamsService] Standard grading completed, workflow skipped.');
 
     return savedResult;
   }
