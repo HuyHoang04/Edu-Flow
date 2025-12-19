@@ -9,7 +9,7 @@ export default function Home() {
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="container flex h-16 items-center justify-between">
                     <div className="flex items-center gap-2 font-bold text-xl text-primary">
-                        <Zap className="h-6 w-6" />
+                        <img src="/logo.svg" alt="EAH Logo" className="h-10 w-auto" />
                         <span>EAH</span>
                     </div>
                     <nav className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
@@ -51,11 +51,12 @@ export default function Home() {
                     </div>
 
                     {/* Hero Image Placeholder */}
-                    <div className="mt-16 rounded-xl border bg-muted/50 p-2 shadow-2xl mx-auto max-w-5xl aspect-video flex items-center justify-center text-muted-foreground">
-                        <div className="text-center">
-                            <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                            <p>Dashboard Preview Image</p>
-                        </div>
+                    <div className="mt-16 rounded-xl border bg-muted/50 p-2 shadow-2xl mx-auto max-w-5xl overflow-hidden">
+                        <img
+                            src="/dashboard.png"
+                            alt="Dashboard Preview"
+                            className="w-full h-auto rounded-lg"
+                        />
                     </div>
                 </section>
 
@@ -107,7 +108,7 @@ export default function Home() {
                 <div className="container grid md:grid-cols-4 gap-8">
                     <div>
                         <div className="flex items-center gap-2 font-bold text-xl text-primary mb-4">
-                            <Zap className="h-5 w-5" />
+                            <img src="/logo.svg" alt="EAH Logo" className="h-8 w-auto" />
                             <span>Education Automation Hub</span>
                         </div>
                         <p className="text-sm text-muted-foreground">

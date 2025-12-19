@@ -1,10 +1,85 @@
 version: '3.8'
 
 services:
+  # --- Frontend Application ---
+  frontend:
+    build: ./frontend
+    container_name: education_hub_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+    depends_on:
+      - main-backend
+    networks:
+      - teacher_automation_network
+
+  # --- Main Backend Service ---
+  main-backend:
+    build: ./services/main-backend
+    container_name: education_hub_backend
+    restart: always
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./services/main-backend/.env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=teacher_automation
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_SERVICE_URL=http://ai-service:8000
+    depends_on:
+      - postgres
+      - redis
+      - ai-service
+    networks:
+      - teacher_automation_network
+
+  # --- AI Content Service ---
+  ai-service:
+    build: ./services/ai-service
+    container_name: education_hub_ai_service
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./services/ai-service/.env
+    environment:
+      - POSTGRES_SERVER=postgres_ai
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ai_content
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      - postgres_ai
+      - ollama
+    networks:
+      - teacher_automation_network
+
+  # --- Inference Engine ---
+  ollama:
+    image: ollama/ollama:latest
+    container_name: education_hub_ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - teacher_automation_network
+
+  # --- Infrastructure Services ---
+
   # PostgreSQL - Main Database
   postgres:
     image: postgres:14-alpine
     container_name: teacher_automation_postgres
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -20,6 +95,7 @@ services:
   postgres_ai:
     image: postgres:14-alpine
     container_name: teacher_automation_postgres_ai
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -35,6 +111,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: teacher_automation_redis
+    restart: always
     ports:
       - "6379:6379"
     volumes:
@@ -46,6 +123,7 @@ volumes:
   postgres_data:
   postgres_ai_data:
   redis_data:
+  ollama_data:
 
 networks:
   teacher_automation_network:

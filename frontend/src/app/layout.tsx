@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const beVietnamPro = Be_Vietnam_Pro({
+    subsets: ["latin", "vietnamese"],
+    weight: ["300", "400", "500", "600", "700"],
+    display: "swap",
+});
 
 export const metadata: Metadata = {
     title: "Education Automation Hub (EAH)",
@@ -18,7 +22,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="vi" suppressHydrationWarning>
-            <body className={inter.className}>
+            <body className={beVietnamPro.className}>
                 <Providers>{children}</Providers>
             </body>
         </html>
