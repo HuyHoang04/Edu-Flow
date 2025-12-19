@@ -14,6 +14,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 export default function ReportsPage() {
@@ -28,6 +29,8 @@ export default function ReportsPage() {
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [generating, setGenerating] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [showDetail, setShowDetail] = useState(false);
 
     useEffect(() => {
         loadReports();
@@ -102,6 +105,51 @@ export default function ReportsPage() {
         }
     };
 
+    const handleView = (report: Report) => {
+        setSelectedReport(report);
+        setShowDetail(true);
+    };
+
+    const handleDownload = (report: Report) => {
+        try {
+            const data = report.data;
+            let content = "";
+            let filename = `${report.title}.csv`;
+
+            if (report.type === 'attendance') {
+                // CSV Header
+                content += "Mã SV,Tên Sinh Viên,Có mặt,Vắng,Tỷ lệ (%)\n";
+                // CSV Rows
+                if (data.students && Array.isArray(data.students)) {
+                    data.students.forEach((s: any) => {
+                        content += `"${s.studentId}","${s.name}",${s.present},${s.absent},${s.presentRate.toFixed(1)}\n`;
+                    });
+                }
+            } else {
+                // Fallback for other types -> just stringify JSON
+                content = JSON.stringify(data, null, 2);
+                filename = `${report.title}.json`;
+            }
+
+            // Create download link
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            toast.success("Đã tải xuống báo cáo");
+
+        } catch (error) {
+            console.error("Download failed", error);
+            toast.error("Tải xuống thất bại");
+        }
+    };
+
     const getReportIcon = (type: string) => {
         switch (type) {
             case 'attendance': return <Calendar className="h-5 w-5 text-blue-500" />;
@@ -171,10 +219,10 @@ export default function ReportsPage() {
                             </div>
 
                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" className="w-full">
+                                <Button variant="outline" size="sm" className="w-full" onClick={() => handleView(report)}>
                                     Xem chi tiết
                                 </Button>
-                                <Button variant="outline" size="sm" className="w-full">
+                                <Button variant="outline" size="sm" className="w-full" onClick={() => handleDownload(report)}>
                                     <Download className="h-3 w-3 mr-1" /> Tải về
                                 </Button>
                             </div>
@@ -248,6 +296,86 @@ export default function ReportsPage() {
                             {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
                             Tạo Báo Cáo
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* View Detail Dialog */}
+            <Dialog open={showDetail} onOpenChange={setShowDetail}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{selectedReport?.title || "Chi tiết báo cáo"}</DialogTitle>
+                        <DialogDescription>
+                            {selectedReport?.createdAt && new Date(selectedReport.createdAt).toLocaleDateString()}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedReport?.type === 'attendance' && selectedReport.data && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                                    <p className="text-sm text-muted-foreground">Tổng số sinh viên</p>
+                                    <p className="text-2xl font-bold">{selectedReport.data.summary?.totalStudents || 0}</p>
+                                </div>
+                                <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                                    <p className="text-sm text-muted-foreground">Tỷ lệ chuyên cần</p>
+                                    <p className="text-2xl font-bold text-blue-600">
+                                        {selectedReport.data.summary?.averageAttendanceRate
+                                            ? selectedReport.data.summary.averageAttendanceRate.toFixed(1) + "%"
+                                            : "0%"}
+                                    </p>
+                                </div>
+                                <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                                    <p className="text-sm text-muted-foreground">Số buổi học</p>
+                                    <p className="text-2xl font-bold">{selectedReport.data.filters?.totalSessions || "N/A"}</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="font-semibold mb-2">Danh sách chi tiết</h4>
+                                <div className="border rounded-lg overflow-hidden">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>MSSV</TableHead>
+                                                <TableHead>Tên</TableHead>
+                                                <TableHead className="text-center">Có mặt</TableHead>
+                                                <TableHead className="text-center">Vắng</TableHead>
+                                                <TableHead className="text-right">Tỷ lệ</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {selectedReport.data.students?.map((s: any) => (
+                                                <TableRow key={s.studentId}>
+                                                    <TableCell className="font-medium">{s.studentId}</TableCell>
+                                                    <TableCell>{s.name}</TableCell>
+                                                    <TableCell className="text-center text-green-600">{s.present}</TableCell>
+                                                    <TableCell className="text-center text-red-600">{s.absent}</TableCell>
+                                                    <TableCell className="text-right font-bold">
+                                                        {s.presentRate.toFixed(1)}%
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedReport?.type !== 'attendance' && (
+                        <div className="p-4 bg-muted rounded-lg">
+                            <pre className="whitespace-pre-wrap text-xs overflow-auto max-h-[400px]">
+                                {JSON.stringify(selectedReport?.data || {}, null, 2)}
+                            </pre>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => handleDownload(selectedReport!)}>
+                            <Download className="h-3 w-3 mr-2" /> Tải về CSV
+                        </Button>
+                        <Button onClick={() => setShowDetail(false)}>Đóng</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

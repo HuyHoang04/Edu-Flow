@@ -99,7 +99,7 @@ class GeminiClient:
             if not api_key:
                 raise ValueError("GEMINI_API_KEY not found in environment")
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
+            self.model = genai.GenerativeModel('gemini-flash-latest')
         except ImportError:
             raise ImportError("google-generativeai package not installed. Run: pip install google-generativeai")
     
@@ -150,26 +150,41 @@ Respond in JSON format:
         return await self.generate_json(prompt)
 
     async def generate_json(self, prompt: str) -> Dict[str, Any]:
-        response = self.model.generate_content(prompt)
+        import asyncio
         import json
-        import re
         
-        # Clean up response text (remove markdown code blocks if present)
-        text = response.text.strip()
-        # Remove ```json and ``` markers
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'^```\s*', '', text)
-        text = re.sub(r'```\s*$', '', text)
-        text = text.strip()
+        max_retries = 3
+        base_delay = 2
         
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            # Fallback: try to find JSON object in text
-            match = re.search(r'\{.*\}', text, re.DOTALL)
-            if match:
-                return json.loads(match.group(0))
-            raise ValueError(f"Failed to parse JSON response: {text}")
+        for attempt in range(max_retries + 1):
+            try:
+                response = await self.model.generate_content_async(
+                    prompt,
+                    generation_config={"response_mime_type": "application/json"}
+                )
+                
+                # Check if response was blocked
+                if not response.parts:
+                    if response.prompt_feedback:
+                        raise ValueError(f"Response blocked. Feedback: {response.prompt_feedback}")
+                    raise ValueError("Response was empty (possibly blocked)")
+                    
+                return json.loads(response.text)
+            
+            except Exception as e:
+                is_rate_limit = "429" in str(e) or "quota" in str(e).lower()
+                
+                if is_rate_limit and attempt < max_retries:
+                    delay = base_delay * (2 ** attempt)
+                    print(f"Gemini 429 Rate Limit. Retrying in {delay}s... (Attempt {attempt+1}/{max_retries})")
+                    await asyncio.sleep(delay)
+                    continue
+                
+                print(f"Gemini generate_json error: {e}")
+                # Identify if it is a safety block or other error
+                if "safety" in str(e).lower() or "block" in str(e).lower():
+                     raise ValueError(f"Content generation blocked by safety filters: {e}")
+                raise e
 
 
 class Phi3Client:

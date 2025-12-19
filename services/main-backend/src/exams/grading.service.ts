@@ -16,7 +16,7 @@ interface GradingResult {
 
 @Injectable()
 export class GradingService {
-  constructor(private questionsService: QuestionsService) {}
+  constructor(private questionsService: QuestionsService) { }
 
   async autoGrade(
     examAttempt: ExamAttempt,
@@ -43,7 +43,7 @@ export class GradingService {
           // Exact match
           score =
             answer.answer.toLowerCase().trim() ===
-            question.correctAnswer.toLowerCase().trim()
+              question.correctAnswer.toLowerCase().trim()
               ? Number(question.points)
               : 0;
           break;
@@ -62,8 +62,8 @@ export class GradingService {
           break;
 
         case QuestionType.ESSAY:
-          // Requires manual grading (or AI via workflow)
-          needsManualReview = true;
+          // User requested to temporarily skip manual/AI grading for essays
+          needsManualReview = false;
           break;
       }
 

@@ -21,6 +21,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +61,7 @@ export default function ExamsPage() {
         topic: "",
         difficulty: "medium",
         correctAnswer: "",
-        options: ""
+        options: []
     });
 
     // New Exam State
@@ -116,17 +117,15 @@ export default function ExamsPage() {
         try {
             let questionData = { ...newQuestionData };
 
-            // Parse options if needed
-            if (typeof questionData.options === 'string' && questionData.options.trim() !== "") {
-                try {
-                    if (questionData.options.startsWith('[') || questionData.options.startsWith('{')) {
-                        questionData.options = JSON.parse(questionData.options);
-                    } else {
-                        questionData.options = questionData.options.split(',').map((o: string) => o.trim());
-                    }
-                } catch (e) {
-                    console.warn("Failed to parse options, using as string");
-                }
+            // Options are already handled as array in state for multiple_choice
+            // For boolean, we might have set it as 'Đúng,Sai' string in the Select onValueChange, verify:
+            if (questionData.type === 'true_false' && typeof questionData.options === 'string') {
+                questionData.options = questionData.options.split(',');
+            }
+            // For multiple_choice, it's already an array from the UI inputs.
+            // Ensure cleaning of empty options
+            if (Array.isArray(questionData.options)) {
+                questionData.options = questionData.options.filter(o => o.trim() !== "");
             }
 
             // Create question
@@ -382,11 +381,11 @@ export default function ExamsPage() {
                                         {/* Similar form fields as Questions page */}
                                         <div className="grid grid-cols-4 items-center gap-4">
                                             <Label htmlFor="newQ-content" className="text-right">Nội dung</Label>
-                                            <Input
+                                            <Textarea
                                                 id="newQ-content"
                                                 value={newQuestionData.content}
                                                 onChange={(e) => setNewQuestionData({ ...newQuestionData, content: e.target.value })}
-                                                className="col-span-3"
+                                                className="col-span-3 min-h-[100px]"
                                                 required
                                             />
                                         </div>
@@ -404,6 +403,7 @@ export default function ExamsPage() {
                                                         <SelectItem value="multiple_choice">Trắc nghiệm</SelectItem>
                                                         <SelectItem value="essay">Tự luận</SelectItem>
                                                         <SelectItem value="true_false">Đúng/Sai</SelectItem>
+                                                        <SelectItem value="short_answer">Điền từ/Trả lời ngắn</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -424,6 +424,7 @@ export default function ExamsPage() {
                                                         <SelectItem value="Anh">Anh</SelectItem>
                                                         <SelectItem value="Lý">Lý</SelectItem>
                                                         <SelectItem value="Hóa">Hóa</SelectItem>
+                                                        <SelectItem value="Tin học">Tin học</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -478,36 +479,72 @@ export default function ExamsPage() {
                                         )}
                                         {newQuestionData.type === 'multiple_choice' && (
                                             <>
-                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                    <Label htmlFor="newQ-options" className="text-right">Các lựa chọn</Label>
-                                                    <div className="col-span-3">
-                                                        <Input
-                                                            id="newQ-options"
-                                                            placeholder="Hà Nội, Hồ Chí Minh, Đà Nẵng, Huế"
-                                                            value={newQuestionData.options as string}
-                                                            onChange={(e) => setNewQuestionData({ ...newQuestionData, options: e.target.value })}
-                                                            className="w-full"
-                                                            required
-                                                        />
-                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                            Nhập nội dung từng lựa chọn, phân cách bằng dấu phẩy
-                                                        </p>
+                                                <div className="grid grid-cols-4 items-start gap-4">
+                                                    <Label className="text-right mt-2">Các lựa chọn</Label>
+                                                    <div className="col-span-3 space-y-2">
+                                                        {(Array.isArray(newQuestionData.options) ? newQuestionData.options : []).map((opt: string, idx: number) => (
+                                                            <div key={idx} className="flex items-center gap-2">
+                                                                <div className="flex-none w-6 text-center text-sm font-medium text-muted-foreground">
+                                                                    {String.fromCharCode(65 + idx)}.
+                                                                </div>
+                                                                <Input
+                                                                    value={opt}
+                                                                    onChange={(e) => {
+                                                                        const newOptions = [...(newQuestionData.options as string[])];
+                                                                        newOptions[idx] = e.target.value;
+                                                                        setNewQuestionData({ ...newQuestionData, options: newOptions });
+                                                                    }}
+                                                                    placeholder={`Lựa chọn ${idx + 1}`}
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => {
+                                                                        const newOptions = [...(newQuestionData.options as string[])];
+                                                                        newOptions.splice(idx, 1);
+                                                                        setNewQuestionData({ ...newQuestionData, options: newOptions });
+                                                                    }}
+                                                                    className="text-muted-foreground hover:text-destructive"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                const newOptions = Array.isArray(newQuestionData.options) ? [...newQuestionData.options] : [];
+                                                                newOptions.push("");
+                                                                setNewQuestionData({ ...newQuestionData, options: newOptions });
+                                                            }}
+                                                            className="gap-2"
+                                                        >
+                                                            <Plus className="h-3 w-3" /> Thêm lựa chọn
+                                                        </Button>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-4 items-center gap-4">
                                                     <Label htmlFor="newQ-correctAnswer" className="text-right">Đáp án đúng</Label>
                                                     <div className="col-span-3">
-                                                        <Input
-                                                            id="newQ-correctAnswer"
-                                                            placeholder="Hà Nội"
+                                                        <Select
                                                             value={newQuestionData.correctAnswer}
-                                                            onChange={(e) => setNewQuestionData({ ...newQuestionData, correctAnswer: e.target.value })}
-                                                            className="w-full"
-                                                            required
-                                                        />
-                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                            Nhập chính xác nội dung đáp án đúng (phải khớp với một trong các lựa chọn)
-                                                        </p>
+                                                            onValueChange={(val: string) => setNewQuestionData({ ...newQuestionData, correctAnswer: val })}
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Chọn đáp án đúng" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {/* Parse options from textarea to show in dropdown */}
+                                                                {String(newQuestionData.options || '').split('\n').filter((opt: string) => opt.trim() !== '').map((opt: string, idx: number) => (
+                                                                    <SelectItem key={idx} value={opt.trim()}>
+                                                                        {opt.trim()}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
                                                 </div>
                                             </>

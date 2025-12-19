@@ -128,11 +128,11 @@ export default function ExamResultsPage() {
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <BrainCircuit className="h-5 w-5 text-purple-600" />
-                            Đánh giá chi tiết từ AI
+                            <FileText className="h-5 w-5 text-primary" />
+                            Chi tiết kết quả
                         </DialogTitle>
                         <DialogDescription>
-                            Kết quả chấm điểm tự động dựa trên Rubric
+                            Kết quả bài làm chi tiết
                         </DialogDescription>
                     </DialogHeader>
 
@@ -143,7 +143,7 @@ export default function ExamResultsPage() {
                                 <div>
                                     <p className="text-sm text-muted-foreground">Tổng điểm</p>
                                     <p className="text-3xl font-bold text-primary">
-                                        {selectedResult.totalScore} <span className="text-base text-muted-foreground font-normal">/ {exam?.totalPoints}</span>
+                                        {selectedResult.totalScore ?? 0} <span className="text-base text-muted-foreground font-normal">/ {exam?.totalPoints}</span>
                                     </p>
                                 </div>
                                 <div className={cn(
@@ -156,46 +156,39 @@ export default function ExamResultsPage() {
                                 </div>
                             </div>
 
-                            {/* AI Feedback Section */}
-                            {/* Assuming the result has a 'feedback' field or we stored it in 'manualGradeScore' or similar. 
-                                Actually, the backend AIGradeExecutor stores feedback in context, but where is it saved in DB?
-                                It updates 'autoGradeScore' and potentially 'feedback' if the entity has it.
-                                Let's check ExamAttempt entity.
-                            */}
-
-                            {/* Placeholder for Feedback if not in entity yet. 
-                                If AIGradeExecutor updates the attempt, it should save feedback.
-                                I need to check if ExamAttempt has feedback column. 
-                                If not, I might need to add it or it's in a separate table.
-                                For now, I'll assume it's not there and just show what's available.
-                            */}
-
-                            <div className="space-y-2">
-                                <h3 className="font-semibold text-sm">Nhận xét chung</h3>
-                                <div className="p-4 bg-blue-50 text-blue-900 rounded-lg text-sm leading-relaxed">
-                                    {(selectedResult as any).feedback || "Chưa có nhận xét chi tiết."}
-                                </div>
-                            </div>
-
-                            {/* Strengths & Improvements (Mock UI if data missing) */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {(selectedResult as any).feedback && (
                                 <div className="space-y-2">
-                                    <h3 className="font-semibold text-sm text-green-700">Điểm mạnh</h3>
-                                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                        {((selectedResult as any).strengths || ["Phân tích vấn đề tốt", "Trình bày rõ ràng"]).map((item: string, i: number) => (
-                                            <li key={i}>{item}</li>
-                                        ))}
-                                    </ul>
+                                    <h3 className="font-semibold text-sm">Nhận xét</h3>
+                                    <div className="p-4 bg-blue-50 text-blue-900 rounded-lg text-sm leading-relaxed">
+                                        {(selectedResult as any).feedback}
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold text-sm text-orange-700">Cần cải thiện</h3>
-                                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                        {((selectedResult as any).improvements || ["Cần thêm ví dụ minh họa", "Mở rộng ý tưởng hơn"]).map((item: string, i: number) => (
-                                            <li key={i}>{item}</li>
-                                        ))}
-                                    </ul>
+                            )}
+
+                            {((selectedResult as any).strengths?.length > 0 || (selectedResult as any).improvements?.length > 0) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {(selectedResult as any).strengths?.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h3 className="font-semibold text-sm text-green-700">Điểm mạnh</h3>
+                                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                                {(selectedResult as any).strengths.map((item: string, i: number) => (
+                                                    <li key={i}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {(selectedResult as any).improvements?.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h3 className="font-semibold text-sm text-orange-700">Cần cải thiện</h3>
+                                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                                {(selectedResult as any).improvements.map((item: string, i: number) => (
+                                                    <li key={i}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </DialogContent>

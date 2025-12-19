@@ -142,7 +142,16 @@ export class ExamsService {
 
     // Get all questions
     const questionIds = exam.questions.map((q) => q.questionId);
-    const questions = await this.questionsService.findByIds(questionIds);
+    let questions = await this.questionsService.findByIds(questionIds);
+
+    // Apply point overrides from Exam definition
+    questions = questions.map(q => {
+      const examQuestion = exam.questions.find(eq => eq.questionId === q.id);
+      if (examQuestion?.points !== undefined) {
+        return { ...q, points: Number(examQuestion.points) } as any;
+      }
+      return q;
+    });
 
     // Auto-grade (Objective only)
     const gradingResult = await this.gradingService.autoGrade(
@@ -156,17 +165,24 @@ export class ExamsService {
     attempt.isGraded = !gradingResult.needsManualGrading;
     await this.attemptsRepository.save(attempt);
 
-    // Create result
-    const percentage =
-      (gradingResult.autoGradeScore / Number(exam.totalPoints)) * 100;
-    const result = this.resultsRepository.create({
-      attemptId: attempt.id,
-      studentId: attempt.studentId,
-      examId: exam.id,
-      score: gradingResult.autoGradeScore,
-      percentage,
-      passed: gradingResult.autoGradeScore >= Number(exam.passingScore),
-    });
+    // Create or Update result
+    let result = await this.resultsRepository.findOne({ where: { attemptId: attempt.id } });
+    const percentage = (gradingResult.autoGradeScore / Number(exam.totalPoints)) * 100;
+
+    if (result) {
+      result.score = gradingResult.autoGradeScore;
+      result.percentage = percentage;
+      result.passed = gradingResult.autoGradeScore >= Number(exam.passingScore);
+    } else {
+      result = this.resultsRepository.create({
+        attemptId: attempt.id,
+        studentId: attempt.studentId,
+        examId: exam.id,
+        score: gradingResult.autoGradeScore,
+        percentage,
+        passed: gradingResult.autoGradeScore >= Number(exam.passingScore),
+      });
+    }
 
     const savedResult = await this.resultsRepository.save(result);
     console.log('[ExamsService] Result saved:', savedResult.id);
@@ -177,11 +193,19 @@ export class ExamsService {
     return savedResult;
   }
 
-  async getExamResults(examId: string): Promise<ExamResult[]> {
-    return this.resultsRepository.find({
+  async getExamResults(examId: string): Promise<any[]> {
+    const results = await this.resultsRepository.find({
       where: { examId },
       relations: ['student'],
     });
+
+    // Map results to match frontend expectations (Frontend expects ExamAttempt fields mixed in)
+    return results.map(r => ({
+      ...r,
+      totalScore: r.score, // Frontend uses totalScore
+      isGraded: true,      // If result exists, it's considered graded
+      submittedAt: r.createdAt // Approximation if join not available
+    }));
   }
 
   async getStudentResults(studentId: string): Promise<ExamResult[]> {

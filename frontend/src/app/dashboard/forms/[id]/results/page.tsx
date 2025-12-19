@@ -15,6 +15,14 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function FormResultsPage() {
     const params = useParams();
@@ -24,6 +32,8 @@ export default function FormResultsPage() {
     const [stats, setStats] = useState<any>(null);
     const [responses, setResponses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedResponse, setSelectedResponse] = useState<any>(null);
+    const [showDetail, setShowDetail] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -88,6 +98,11 @@ export default function FormResultsPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleViewDetail = (response: any) => {
+        setSelectedResponse(response);
+        setShowDetail(true);
     };
 
     if (isLoading) {
@@ -218,7 +233,7 @@ export default function FormResultsPage() {
                                         <TableCell>{response.respondentEmail}</TableCell>
                                         <TableCell>{response.respondentName || "Ẩn danh"}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="sm">Xem chi tiết</Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleViewDetail(response)}>Xem chi tiết</Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -234,6 +249,38 @@ export default function FormResultsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Response Detail Dialog */}
+            <Dialog open={showDetail} onOpenChange={setShowDetail}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Chi tiết phản hồi</DialogTitle>
+                        <DialogDescription>
+                            Người gửi: {selectedResponse?.respondentName || selectedResponse?.respondentEmail} <br />
+                            Thời gian: {selectedResponse?.submittedAt && new Date(selectedResponse.submittedAt).toLocaleString('vi-VN')}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6 py-4">
+                        {stats && selectedResponse && Object.entries(stats.fieldStats).map(([fieldId, stat]: [string, any]) => {
+                            let answer = selectedResponse.answers[fieldId];
+                            if (Array.isArray(answer)) answer = answer.join(", ");
+                            if (answer === undefined || answer === null) answer = "(Không trả lời)";
+
+                            return (
+                                <div key={fieldId} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
+                                    <h4 className="font-medium text-sm text-muted-foreground">{stat.fieldLabel}</h4>
+                                    <p className="text-base whitespace-pre-wrap">{String(answer)}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <DialogFooter>
+                        <Button onClick={() => setShowDetail(false)}>Đóng</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
